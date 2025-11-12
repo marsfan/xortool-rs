@@ -1,13 +1,12 @@
 use std::{fs, io::Read, panic::UnwindSafe, path::PathBuf, str::Bytes};
 
-pub fn load_file(filename: &str) -> Vec<u8> {
+pub fn load_file(filename: &str) -> String {
     if filename == "-" {
-        let mut buf = Vec::new();
-        std::io::stdin().read_to_end(&mut buf).unwrap();
-        println!("{}", String::from_utf8(buf.clone()).unwrap());
+        let mut buf = String::new();
+        std::io::stdin().read_to_string(&mut buf).unwrap();
         return buf;
     }
-    std::fs::read(filename).unwrap()
+    std::fs::read_to_string(filename).unwrap()
 }
 
 pub fn save_file(filename: String, data: &[u8]) {
@@ -31,15 +30,26 @@ pub fn rmdir(dirname: &str) {
     fs::remove_dir_all(dirname).unwrap();
 }
 
-pub fn decode_from_hex(text: &[u8]) -> Vec<u8> {
-    let text = String::from_utf8_lossy(text);
+pub fn decode_from_hex(text: &str) -> Vec<u8> {
+    // FIXME: Can probably make this a lot cleaner
     let mut only_hex_digits = String::new();
     for character in text.chars() {
         if "0123456789abcdefABCDEF".contains(character) {
             only_hex_digits.push_str(&character.to_string());
         }
     }
-    only_hex_digits.bytes().collect()
+    let mut result = Vec::new();
+    assert_eq!(only_hex_digits.len() % 2, 0);
+    for chunk in only_hex_digits
+        .chars()
+        .collect::<Vec<char>>()
+        .chunks_exact(2)
+    {
+        assert_eq!(chunk.len(), 2);
+        let s = chunk.iter().collect::<String>();
+        result.push(u8::from_str_radix(&s, 16).unwrap());
+    }
+    result
 }
 
 pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {

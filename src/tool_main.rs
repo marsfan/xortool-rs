@@ -105,11 +105,12 @@ pub fn main() {
 
 /// Loading ciphertext
 fn get_ciphertext(param: &Parameters) -> Vec<u8> {
-    let mut ciphertext = load_file(&param.filename);
+    let ciphertext = load_file(&param.filename);
+
     if param.input_is_hex {
-        ciphertext = decode_from_hex(&ciphertext);
+        return decode_from_hex(&ciphertext);
     }
-    ciphertext
+    ciphertext.bytes().collect()
 }
 
 // -----------------------------------------------------------------------------
@@ -158,7 +159,6 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
     }
 
     if pprev < prev {
-        println!("AAA");
         fitnesses.push((outer_key_len - 1, prev));
     }
 
@@ -175,7 +175,7 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
 
     let mut top10: Vec<(i32, f64)> = fitnesses[..10].into_iter().map(|v| v.clone()).collect();
     let best_fitness = top10[0].1;
-    top10.sort_by(|a, b| a.1.total_cmp(&b.1));
+    top10.sort_by_key(|v| v.0);
 
     let fitness_sum = calc_fitness_sum(&top10);
 
@@ -184,13 +184,13 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
         if fitness == best_fitness {
             // FIXME: Need to format string as this: str(len(str(max(i[0] for i in top10))))
             println!(
-                "{}{key_length}{}: {}{pct:5.1}{}",
+                "{}{key_length}{}: {}{pct:5.1}%{}",
                 *C_BEST_KEYLEN, *C_RESET, *C_BEST_PROB, *C_RESET
             );
         } else {
             // FIXME: Need to format string as this: str(len(str(max(i[0] for i in top10))))
             println!(
-                "{}{key_length}{}: {}{pct:5.1}{}",
+                "{}{key_length}{}: {}{pct:5.1}%{}",
                 *C_KEYLEN, *C_RESET, *C_PROB, *C_RESET
             );
         }
@@ -352,11 +352,12 @@ fn print_keys(keys: &Vec<Vec<u8>>) {
     );
 
     // FIXME: Don't use :? for formatting, but need to convert to string for proper display
-    for key in &keys[..5] {
+    for key in keys.iter().take(5) {
+        // let x = &key[2..(key.len() - 2)];
         println!(
-            "{}{:?}{}",
+            "{}{}{}",
             C_KEY.to_string(),
-            &key[2..(key.len() - 2)],
+            String::from_utf8(key.to_vec()).unwrap(),
             C_RESET.to_string()
         );
     }
@@ -463,7 +464,7 @@ fn produce_plaintext(
     }
 
     let mut msg = format!(
-        "{}{count_valid}{} plaintexts with {}{threshold_valid}{}%+ valid_characters",
+        "Found {}{count_valid}{} plaintexts with {}{threshold_valid}{}%+ valid_characters",
         *C_COUNT, *C_RESET, *C_COUNT, *C_RESET
     );
     if !param.known_plain.is_empty() {
