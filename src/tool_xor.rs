@@ -1,7 +1,105 @@
-use std::io::Read;
+use std::{
+    io::{Read, Write, stdout},
+    process::exit,
+};
+
+use getopt::Opt;
+use lazy_static::lazy_static;
+
+use crate::VERSION;
+
+lazy_static! {
+    static ref DOC: String = format!(
+        "
+xortool-xor {VERSION}
+xor strings
+options:
+    -s  -  string with \\xAF escapes
+    -r  -  raw string
+    -h  -  hex-encoded string (non-letterdigit chars are stripped)
+    -f  -  read data from file (- for stdin)
+
+    --newline -  newline at the end (default)
+    -n / --no-newline -  no newline at the end
+    --cycle - do not pad (default)
+    --no-cycle / --nc  -  pad smaller strings with null bytes
+example: xor -s lol -h 414243 -f /etc/passwd
+"
+    );
+}
 
 pub fn main() {
-    todo!()
+    let mut cycle = true;
+    let mut newline = true;
+
+    let mut stdin_args: Vec<String> = std::env::args().collect();
+    let mut no_doubles: Vec<String> = stdin_args
+        .clone()
+        .into_iter()
+        .filter(|v| !v.starts_with("--"))
+        .collect();
+    let mut opts = getopt::Parser::new(&no_doubles, "ns:r:h:f:");
+    let mut datas = Vec::new();
+    let mut collected_args: Vec<(String, String)> = Vec::new();
+
+    // This process is a bit different from tool_xor.py, due to not really
+    // having getopt in rust that can handle long form args.
+    // So we use a getopt crate, and then gather all the other args that
+    // start with a double dash, then we parse through like in the python code.
+    // It also means we don't currently error out for unknown arrg types
+    loop {
+        match opts.next().transpose().unwrap() {
+            None => break,
+            Some(opt) => match opt {
+                Opt(key, Some(arg)) => collected_args.push((format!("-{key}"), arg)),
+                Opt(key, None) => collected_args.push((key.to_string(), String::new())),
+            },
+        }
+    }
+    // Collect long args. Luckily there's no long args that take parameters, so
+    // this is really easy.
+    for arg in stdin_args.iter() {
+        if arg.starts_with("--") {
+            collected_args.push((arg.clone(), String::new()));
+        }
+        // Exit if its a single arg that we don't support
+        else if arg.starts_with("-") {
+            let valids = ["-n", "-s", "-r", "-h", "-f"];
+            if !valids.contains(&arg.as_str()) {
+                eprintln!("error: option {arg} not recognized");
+                eprintln!("{}", *DOC);
+                exit(1)
+            }
+        }
+    }
+
+    // Now we are actually back on course.
+    for (c, val) in collected_args {
+        if c == "--cycle" {
+            cycle = true;
+        } else if ["--no-cycle", "--nc"].contains(&c.as_str()) {
+            cycle = false;
+        } else if c == "--newline" {
+            newline = true;
+        } else if ["-n", "--no-newline"].contains(&c.as_str()) {
+            newline = false;
+        } else {
+            // datas.push(arg_data(&c, &val));
+        }
+    }
+
+    if datas.is_empty() {
+        eprintln!("error: no data given");
+        eprintln!("{}", *DOC);
+        exit(1)
+    }
+
+    let result = xor(datas, cycle);
+    stdout().write(&result).unwrap();
+    if newline {
+        stdout().write("\n".as_bytes()).unwrap();
+    }
+    stdout().flush().unwrap();
 }
 
 fn xor(mut args: Vec<Vec<u8>>, cycle: bool) -> Vec<u8> {
@@ -47,6 +145,10 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
             .map(|c| u8::from_str_radix(&c, 16).unwrap())
             .collect(),
         "-f" => from_file(s),
-        _ => panic!("Unknown Option {opt}"),
+        _ => {
+            eprintln!("unknown option -{opt}");
+            eprintln!("{}", *DOC);
+            exit(1)
+        }
     }
 }
