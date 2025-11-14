@@ -100,7 +100,7 @@ pub fn main() {
     produce_plaintext(&ciphertext, &probable_keys, &key_char_used, &param);
 
     // FIXME: Need Exception handling. Needs to be bubbled up from functions instead of them panicking.
-    cleanup();
+    // cleanup();
 }
 
 /// Loading ciphertext
