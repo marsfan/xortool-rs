@@ -5,7 +5,7 @@ use crate::{
     colors::{C_BEST_KEYLEN, C_BEST_PROB, C_KEYLEN, C_PROB},
     routine::{dexor, mkdir},
 };
-use std::{collections::HashMap, fs, io::Write, path::MAIN_SEPARATOR};
+use std::{ascii::escape_default, collections::HashMap, fs, io::Write, path::MAIN_SEPARATOR};
 lazy_static! {
 
 
@@ -110,7 +110,7 @@ fn get_ciphertext(param: &Parameters) -> Vec<u8> {
     if param.input_is_hex {
         return decode_from_hex(&ciphertext);
     }
-    ciphertext.bytes().collect()
+    ciphertext
 }
 
 // -----------------------------------------------------------------------------
@@ -173,7 +173,7 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     fitnesses.sort_by(|a, b| a.1.total_cmp(&b.1));
     fitnesses.reverse();
 
-    let mut top10: Vec<(i32, f64)> = fitnesses[..10].into_iter().map(|v| v.clone()).collect();
+    let mut top10: Vec<(i32, f64)> = fitnesses.iter().take(10).map(|v| v.clone()).collect();
     let best_fitness = top10[0].1;
     top10.sort_by_key(|v| v.0);
 
@@ -357,13 +357,23 @@ fn print_keys(keys: &Vec<Vec<u8>>) {
         println!(
             "{}{}{}",
             C_KEY.to_string(),
-            String::from_utf8(key.to_vec()).unwrap(),
+            to_printable_key(key),
             C_RESET.to_string()
         );
     }
     if keys.len() > 10 {
         println!("...");
     }
+}
+
+fn to_printable_key(bytes: &[u8]) -> String {
+    let mut result = String::new();
+    for &byte in bytes {
+        for c in escape_default(byte) {
+            result.push(c as char);
+        }
+    }
+    result
 }
 
 // -----------------------------------------------------------------------------
@@ -429,7 +439,7 @@ fn produce_plaintext(
 
     for (index, key) in keys.iter().enumerate() {
         let key_index = format!(
-            "{index:<width$}",
+            "{index:0<width$}",
             width = format!("{}", (keys.len() - 1)).len(),
         );
         // FIXME: SHould be repr(key) in python

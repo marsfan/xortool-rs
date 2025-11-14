@@ -116,8 +116,8 @@ pub fn color(color: &str, bgcolor: &str, attrs: &str) -> String {
 }
 
 pub fn is_bash() -> bool {
-    // todo!()
-    return true;
+    // FIXME: Actually implement this properly.
+    return false;
 }
 
 fn _keys_sorted_by_value(adict: HashMap<&'static str, &'static str>) -> Vec<String> {
