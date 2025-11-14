@@ -22,7 +22,6 @@ fn parse_char(ch: Option<&str>) -> Option<i32> {
                 return Some(c.bytes().collect::<Vec<u8>>()[0].into());
             }
             if c[0..2] == *"0x" || c[0..2] == *"\\x" {
-                let tmp = &c[2..];
                 c = &c[2..];
             }
             if c.len() == 0 {

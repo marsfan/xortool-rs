@@ -32,8 +32,8 @@ pub fn main() {
     let mut cycle = true;
     let mut newline = true;
 
-    let mut stdin_args: Vec<String> = std::env::args().collect();
-    let mut no_doubles: Vec<String> = stdin_args
+    let stdin_args: Vec<String> = std::env::args().collect();
+    let no_doubles: Vec<String> = stdin_args
         .clone()
         .into_iter()
         .filter(|v| !v.starts_with("--"))
@@ -51,7 +51,7 @@ pub fn main() {
         match opts.next().transpose().unwrap() {
             None => break,
             Some(opt) => match opt {
-                Opt(key, Some(arg)) => collected_args.push((format!("-{key}"), arg)),
+                Opt(key, Some(arg)) => collected_args.push((key.to_string(), arg)),
                 Opt(key, None) => collected_args.push((key.to_string(), String::new())),
             },
         }
@@ -61,15 +61,6 @@ pub fn main() {
     for arg in stdin_args.iter() {
         if arg.starts_with("--") {
             collected_args.push((arg.clone(), String::new()));
-        }
-        // Exit if its a single arg that we don't support
-        else if arg.starts_with("-") {
-            let valids = ["-n", "-s", "-r", "-h", "-f"];
-            if !valids.contains(&arg.as_str()) {
-                eprintln!("error: option {arg} not recognized");
-                eprintln!("{}", *DOC);
-                exit(1)
-            }
         }
     }
 
@@ -81,10 +72,10 @@ pub fn main() {
             cycle = false;
         } else if c == "--newline" {
             newline = true;
-        } else if ["-n", "--no-newline"].contains(&c.as_str()) {
+        } else if ["n", "--no-newline"].contains(&c.as_str()) {
             newline = false;
         } else {
-            // datas.push(arg_data(&c, &val));
+            datas.push(arg_data(&c, &val));
         }
     }
 
@@ -133,10 +124,10 @@ fn from_file(s: &str) -> Vec<u8> {
 
 fn arg_data(opt: &str, s: &str) -> Vec<u8> {
     match opt {
-        "-s" => from_str(s),
-        "-r" => s.bytes().collect(),
+        "s" => from_str(s),
+        "r" => s.bytes().collect(),
         //FIXME: There has to be a way to make this a bit nicer looking
-        "-h" => s
+        "h" => s
             .replace(" ", "")
             .chars()
             .collect::<Vec<char>>()
@@ -144,7 +135,7 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
             .map(|c| c.iter().collect::<String>())
             .map(|c| u8::from_str_radix(&c, 16).unwrap())
             .collect(),
-        "-f" => from_file(s),
+        "f" => from_file(s),
         _ => {
             eprintln!("unknown option -{opt}");
             eprintln!("{}", *DOC);
