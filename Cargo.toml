@@ -6,4 +6,5 @@ edition = "2024"
 
 [dependencies]
 docopt = "1.1.1"
+getopt = "1.1.9"
 lazy_static = "1.5.0"

@@ -24,6 +24,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "getopt"
+version = "1.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66eb69f29cb9773ca399122b247020f929dde18de809a27b0250be02bbf9fa5e"
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -140,5 +146,6 @@ name = "xortool-rs"
 version = "0.1.0"
 dependencies = [
  "docopt",
+ "getopt",
  "lazy_static",
 ]
