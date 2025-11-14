@@ -1,5 +1,7 @@
 use docopt::{ArgvMap, Docopt};
 
+use crate::charset::get_charset;
+
 pub struct Parameters {
     pub brute_chars: bool,
     pub brute_printable: bool,
@@ -79,7 +81,10 @@ pub fn parse_parameters(doc: &str, version: &str) -> Parameters {
         known_key_length: parse_optional_int(&p, "--key-length"),
         max_key_length: parse_optional_int(&p, "--max-keylen"),
         most_frequent_char: parse_optional_int(&p, "--char"),
-        text_charset: p.get_str("--text-charset").bytes().collect(),
+        text_charset: get_charset(p.get_str("--text-charset"))
+            .unwrap()
+            .as_bytes()
+            .to_vec(),
         known_plain: p.get_str("--known-plaintext").bytes().collect(),
         threshold: parse_optional_int(&p, "--threshold"),
     }
