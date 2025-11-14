@@ -178,20 +178,29 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     top10.sort_by_key(|v| v.0);
 
     let fitness_sum = calc_fitness_sum(&top10);
+    // FIXME: Can we do this without string formatting?
+    let largest_number = top10.iter().map(|v| v.0).max().unwrap();
+    let largest_width = format!("{largest_number}").len();
 
     for (key_length, fitness) in top10 {
         let pct = 100.0 * fitness * 1.0 / fitness_sum;
         if fitness == best_fitness {
-            // FIXME: Need to format string as this: str(len(str(max(i[0] for i in top10))))
             println!(
-                "{}{key_length}{}: {}{pct:5.1}%{}",
-                *C_BEST_KEYLEN, *C_RESET, *C_BEST_PROB, *C_RESET
+                "{}{key_length:>width$}{}: {}{pct:5.1}%{}",
+                *C_BEST_KEYLEN,
+                *C_RESET,
+                *C_BEST_PROB,
+                *C_RESET,
+                width = largest_width
             );
         } else {
-            // FIXME: Need to format string as this: str(len(str(max(i[0] for i in top10))))
             println!(
-                "{}{key_length}{}: {}{pct:5.1}%{}",
-                *C_KEYLEN, *C_RESET, *C_PROB, *C_RESET
+                "{}{key_length:>width$}{}: {}{pct:5.1}%{}",
+                *C_KEYLEN,
+                *C_RESET,
+                *C_PROB,
+                *C_RESET,
+                width = largest_width
             );
         }
     }
@@ -342,7 +351,7 @@ fn print_keys(keys: &Vec<Vec<u8>>) {
         return;
     }
     println!(
-        "{}{}{} possible key(s) of length {}{}{}",
+        "{}{}{} possible key(s) of length {}{}{}:",
         C_COUNT.to_string(),
         keys.len(),
         C_RESET.to_string(),
@@ -351,9 +360,7 @@ fn print_keys(keys: &Vec<Vec<u8>>) {
         C_RESET.to_string()
     );
 
-    // FIXME: Don't use :? for formatting, but need to convert to string for proper display
     for key in keys.iter().take(5) {
-        // let x = &key[2..(key.len() - 2)];
         println!(
             "{}{}{}",
             C_KEY.to_string(),
@@ -474,7 +481,7 @@ fn produce_plaintext(
     }
 
     let mut msg = format!(
-        "Found {}{count_valid}{} plaintexts with {}{threshold_valid}{}%+ valid_characters",
+        "Found {}{count_valid}{} plaintexts with {}{threshold_valid}{}%+ valid characters",
         *C_COUNT, *C_RESET, *C_COUNT, *C_RESET
     );
     if !param.known_plain.is_empty() {
