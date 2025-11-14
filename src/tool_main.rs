@@ -380,7 +380,8 @@ fn to_printable_key(bytes: &[u8]) -> String {
             result.push(c as char);
         }
     }
-    result
+    // To match the original test, we don't want to escape the quote character.
+    result.replace("\\\"", "\"")
 }
 
 // -----------------------------------------------------------------------------
