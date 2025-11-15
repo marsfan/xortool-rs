@@ -12,7 +12,8 @@ lazy_static! {
         m.insert("1", "0123456789");
         m.insert("!", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
         // FIXME: Missing \v and \f from python. Rust does not support those escapes?
-        m.insert("*", "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\t\n\r");
+        // NOTE: Rust does not seem to support \v and \f escape characters, so we used \x0b and \x0c instead, as those are allowed
+        m.insert("*", "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c");
         m
     };
 
