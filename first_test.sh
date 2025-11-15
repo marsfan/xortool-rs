@@ -1,0 +1,2 @@
+hexdump -Cv test/data/binary_xored | cut -s -d ' ' -f 3-20 | cargo run --bin xortool --release -- --hex -b
+# hexdump -Cv test/data/binary_xored | cut -s -d ' ' -f 3-20 | cargo run --bin xortool --release --  -x -l 10 -c 00

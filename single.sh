@@ -1,0 +1,1 @@
+cargo run --release --bin xortool -- --brute-printable test/data/binary_xored
