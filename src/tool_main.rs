@@ -118,10 +118,17 @@ fn get_ciphertext(param: &Parameters) -> Vec<u8> {
 // -----------------------------------------------------------------------------
 
 fn guess_key_length(text: &[u8], param: &Parameters) -> i32 {
-    let fitnesses = calculate_fitnesses(text, param);
+    let mut fitnesses = calculate_fitnesses(text, param);
     if fitnesses.is_empty() {
         panic!("No candidates for key length found! Too small file?");
     }
+    // Sorting here instead of inside the print_fitnesses function since
+    // in Python, the list was passed by reference and thus sorted for all
+    // later functions. But here we pass a immutable slice, so if we sorted
+    // in the function, it would only apply to that function
+    fitnesses.sort_by(|a, b| a.1.total_cmp(&b.1));
+    fitnesses.reverse();
+
     print_fitnesses(&fitnesses);
     guess_and_print_divisors(&fitnesses, param);
     get_max_fitnessed_key_length(&fitnesses)
@@ -144,7 +151,6 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
     let mut outer_key_len = 0;
 
     for key_length in 1..range_end {
-        outer_key_len = key_length;
         let fitness = count_equals(text, key_length) as f64;
 
         let fitness = fitness / (max_key_len as f64 + (key_length as f64).powf(1.5));
@@ -156,6 +162,7 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
 
         pprev = prev;
         prev = fitness;
+        outer_key_len = key_length;
     }
 
     if pprev < prev {
@@ -169,9 +176,8 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     println!("The most probable key lengths:");
 
     // Top sorted by fitness, but print sorted by length.
-    let mut fitnesses = Vec::from(fitnesses);
-    fitnesses.sort_by(|a, b| a.1.total_cmp(&b.1));
-    fitnesses.reverse();
+    // NOTE: Original Python had sorting here, but we moved it to outer
+    // function. See the outer function for a comment on why
 
     let mut top10: Vec<(i32, f64)> = fitnesses.iter().take(10).map(|v| v.clone()).collect();
     let best_fitness = top10[0].1;
@@ -262,10 +268,10 @@ fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32
 fn get_max_fitnessed_key_length(fitnesses: &[(i32, f64)]) -> i32 {
     let mut max_fitness = 0.0;
     let mut max_fitnessed_key_length = 0;
-    for (key_length, fitness) in fitnesses {
-        if *fitness > max_fitness {
-            max_fitness = *fitness;
-            max_fitnessed_key_length = *key_length;
+    for &(key_length, fitness) in fitnesses {
+        if fitness > max_fitness {
+            max_fitness = fitness;
+            max_fitnessed_key_length = key_length;
         }
     }
     max_fitnessed_key_length
@@ -322,9 +328,9 @@ fn guess_keys(text: &[u8], most_char: u8, param: &Parameters) -> Vec<Vec<u8>> {
 
     for offset in 0..key_length {
         let chars_count = chars_count_at_offset(text, key_length, offset);
-        let max_count = chars_count.values().max().unwrap();
-        for (character, _) in &chars_count {
-            if chars_count[&character] >= *max_count {
+        let max_count = *chars_count.values().max().unwrap();
+        for &character in chars_count.keys() {
+            if chars_count[&character] >= max_count {
                 key_possible_bytes[usize::try_from(offset).unwrap()].push(character ^ most_char);
             }
         }
