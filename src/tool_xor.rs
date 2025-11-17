@@ -2,6 +2,7 @@ use std::{
     io::{Read, Write, stdout},
     process::exit,
 };
+use unicode_escape::decode;
 
 use getopt::Opt;
 use lazy_static::lazy_static;
@@ -110,13 +111,13 @@ fn xor(mut args: Vec<Vec<u8>>, cycle: bool) -> Vec<u8> {
 }
 
 fn from_str(s: &str) -> Vec<u8> {
-    s.bytes().collect()
+    decode(s).unwrap().bytes().collect()
 }
 
 fn from_file(s: &str) -> Vec<u8> {
     if s == "-" {
         let mut buf = Vec::new();
-        std::io::stdin().read(&mut buf).unwrap();
+        std::io::stdin().read_to_end(&mut buf).unwrap();
         return buf;
     }
     std::fs::read(s).unwrap()

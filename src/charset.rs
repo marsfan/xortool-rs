@@ -11,7 +11,6 @@ lazy_static! {
         m.insert("A", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
         m.insert("1", "0123456789");
         m.insert("!", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
-        // FIXME: Missing \v and \f from python. Rust does not support those escapes?
         // NOTE: Rust does not seem to support \v and \f escape characters, so we used \x0b and \x0c instead, as those are allowed
         m.insert("*", "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c");
         m
@@ -21,7 +20,6 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert("base32","ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=");
         m.insert("base64","abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/+=");
-        // FIXME: Missing \v and \f from python. Rust does not support those escapes?
         m.insert("printable", CHARSETS.get("*").unwrap());
         m
     };
@@ -30,6 +28,7 @@ lazy_static! {
 
 // FIXME: Proper Error Type
 pub fn get_charset(charset: &str) -> Result<String, ()> {
+    let charset = if charset == "" { "printable" } else { charset };
     if PREDEFINED_CHARSETS.contains_key(charset) {
         return Ok(PREDEFINED_CHARSETS.get(charset).unwrap().to_string());
     }

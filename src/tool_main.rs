@@ -387,7 +387,7 @@ fn to_printable_key(bytes: &[u8]) -> String {
         }
     }
     // To match the original test, we don't want to escape the quote character.
-    result.replace("\\\"", "\"")
+    result.replace("\\\"", "\"").replace("\\'", "'")
 }
 
 // -----------------------------------------------------------------------------
@@ -457,7 +457,7 @@ fn produce_plaintext(
             width = format!("{}", (keys.len() - 1)).len(),
         );
         // FIXME: SHould be repr(key) in python
-        let key_repr = format!("{key:?}");
+        let key_repr = format!("{}", to_printable_key(&key));
         let file_name = format!("{DIRNAME}{MAIN_SEPARATOR}{key_index}.out");
 
         let dexored = dexor(ciphertext, key);
