@@ -1,6 +1,7 @@
 mod args;
 mod charset;
 mod colors;
+mod error;
 pub mod libcolors;
 mod routine;
 pub mod tool_main;

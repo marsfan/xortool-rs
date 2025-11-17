@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
+
+use crate::error::XorError;
 // FIXME: Generally, there's a lot here that could be cleaned up
 
 lazy_static! {
@@ -26,8 +28,7 @@ lazy_static! {
 
 }
 
-// FIXME: Proper Error Type
-pub fn get_charset(charset: &str) -> Result<String, ()> {
+pub fn get_charset(charset: &str) -> Result<String, XorError> {
     let charset = if charset == "" { "printable" } else { charset };
     if PREDEFINED_CHARSETS.contains_key(charset) {
         return Ok(PREDEFINED_CHARSETS.get(charset).unwrap().to_string());
@@ -38,7 +39,7 @@ pub fn get_charset(charset: &str) -> Result<String, ()> {
         if (*CHARSETS).contains_key(c.to_string().as_str()) {
             chars.push_str(CHARSETS.get(c.to_string().as_str()).unwrap());
         } else {
-            return Err(());
+            return Err(XorError::CharsetError { charset: c });
         }
     }
     return Ok(chars);

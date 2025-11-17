@@ -2,7 +2,8 @@ use lazy_static::lazy_static;
 
 use crate::{
     VERSION,
-    colors::{C_BEST_KEYLEN, C_BEST_PROB, C_KEYLEN, C_PROB},
+    colors::{C_BEST_KEYLEN, C_BEST_PROB, C_FATAL, C_KEYLEN, C_PROB},
+    error::XorError,
     routine::{dexor, mkdir},
 };
 use std::{ascii::escape_default, collections::HashMap, fs, io::Write, path::MAIN_SEPARATOR};
@@ -64,10 +65,18 @@ use crate::{
 };
 
 pub fn main() {
-    let mut param = parse_parameters(&DOC, VERSION);
+    let result = main_inner();
+    match result {
+        Ok(()) => (),
+        Err(e) => eprintln!("{e}"),
+    }
+}
+
+fn main_inner() -> Result<(), XorError> {
+    let mut param = parse_parameters(&DOC, VERSION)?;
     let ciphertext = get_ciphertext(&param);
     if param.known_key_length.is_none() {
-        param.known_key_length = Some(guess_key_length(&ciphertext, &param))
+        param.known_key_length = Some(guess_key_length(&ciphertext, &param)?)
     }
 
     let try_chars: Vec<u8> = if param.brute_chars {
@@ -97,10 +106,11 @@ pub fn main() {
         guess_probable_keys_for_chars(&ciphertext, &try_chars, &param);
 
     print_keys(&probable_keys);
-    produce_plaintext(&ciphertext, &probable_keys, &key_char_used, &param);
+    produce_plaintext(&ciphertext, &probable_keys, &key_char_used, &param)?;
 
     // FIXME: Need Exception handling. Needs to be bubbled up from functions instead of them panicking.
     // cleanup();
+    Ok(())
 }
 
 /// Loading ciphertext
@@ -117,10 +127,12 @@ fn get_ciphertext(param: &Parameters) -> Vec<u8> {
 // KEYLENGTH GUESSING SECTION
 // -----------------------------------------------------------------------------
 
-fn guess_key_length(text: &[u8], param: &Parameters) -> i32 {
+fn guess_key_length(text: &[u8], param: &Parameters) -> Result<i32, XorError> {
     let mut fitnesses = calculate_fitnesses(text, param);
     if fitnesses.is_empty() {
-        panic!("No candidates for key length found! Too small file?");
+        return Err(XorError::AnalysisError {
+            msg: String::from("No candidates for key length found! Too small file?"),
+        });
     }
     // Sorting here instead of inside the print_fitnesses function since
     // in Python, the list was passed by reference and thus sorted for all
@@ -131,7 +143,7 @@ fn guess_key_length(text: &[u8], param: &Parameters) -> i32 {
 
     print_fitnesses(&fitnesses);
     guess_and_print_divisors(&fitnesses, param);
-    get_max_fitnessed_key_length(&fitnesses)
+    Ok(get_max_fitnessed_key_length(&fitnesses))
 }
 
 fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
@@ -415,9 +427,9 @@ fn produce_plaintext(
     keys: &Vec<Vec<u8>>,
     key_char_used: &HashMap<Vec<u8>, u8>,
     param: &Parameters,
-) {
+) -> Result<(), XorError> {
     cleanup();
-    mkdir(DIRNAME);
+    mkdir(DIRNAME)?;
 
     // this is split up in two files since the
     // key can contain all kinds of characters
@@ -499,6 +511,8 @@ fn produce_plaintext(
     }
     println!("{msg}");
     println!("See files {fn_key_mapping}, {fn_perc_mapping}");
+
+    Ok(())
 }
 
 fn cleanup() {

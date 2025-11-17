@@ -1,5 +1,7 @@
 use std::{fs, io::Read};
 
+use crate::error::XorError;
+
 pub fn load_file(filename: &str) -> Vec<u8> {
     if filename == "-" {
         let mut buf = Vec::new();
@@ -13,11 +15,14 @@ pub fn save_file(filename: String, data: &[u8]) {
     std::fs::write(filename, data).unwrap()
 }
 
-pub fn mkdir(dirname: &str) {
+pub fn mkdir(dirname: &str) -> Result<(), XorError> {
     if fs::exists(&dirname).unwrap() {
-        return;
+        return Ok(());
     } else {
-        fs::create_dir(&dirname).unwrap();
+        match fs::create_dir(&dirname) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(XorError::MkdirError { msg: e.to_string() }),
+        }
     }
 }
 

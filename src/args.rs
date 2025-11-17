@@ -1,6 +1,6 @@
 use docopt::{ArgvMap, Docopt};
 
-use crate::charset::get_charset;
+use crate::{charset::get_charset, error::XorError};
 
 pub struct Parameters {
     pub brute_chars: bool,
@@ -63,29 +63,32 @@ fn parse_optional_int(parsed: &ArgvMap, arg: &str) -> Option<i32> {
     }
 }
 
-pub fn parse_parameters(doc: &str, version: &str) -> Parameters {
-    let p = Docopt::new(doc)
-        .and_then(|dopt| dopt.version(Some(version.to_string())).parse())
-        .unwrap_or_else(|e| e.exit());
-    Parameters {
-        brute_chars: p.get_bool("--brute-chars"),
-        brute_printable: p.get_bool("--brute-printable"),
-        filename: if p.get_str("FILE").is_empty() {
-            "-".to_string()
-        } else {
-            p.get_str("FILE").to_string()
-        },
-        filter_output: p.get_bool("--filter-output"),
-        frequency_spread: 0, // To be removed
-        input_is_hex: p.get_bool("--hex"),
-        known_key_length: parse_optional_int(&p, "--key-length"),
-        max_key_length: parse_optional_int(&p, "--max-keylen"),
-        most_frequent_char: parse_optional_int(&p, "--char"),
-        text_charset: get_charset(p.get_str("--text-charset"))
-            .unwrap()
-            .as_bytes()
-            .to_vec(),
-        known_plain: p.get_str("--known-plaintext").bytes().collect(),
-        threshold: parse_optional_int(&p, "--threshold"),
+pub fn parse_parameters(doc: &str, version: &str) -> Result<Parameters, XorError> {
+    let p = Docopt::new(doc).and_then(|dopt| dopt.version(Some(version.to_string())).parse());
+    match p {
+        Ok(p) => {
+            Ok(Parameters {
+                brute_chars: p.get_bool("--brute-chars"),
+                brute_printable: p.get_bool("--brute-printable"),
+                filename: if p.get_str("FILE").is_empty() {
+                    "-".to_string()
+                } else {
+                    p.get_str("FILE").to_string()
+                },
+                filter_output: p.get_bool("--filter-output"),
+                frequency_spread: 0, // To be removed
+                input_is_hex: p.get_bool("--hex"),
+                known_key_length: parse_optional_int(&p, "--key-length"),
+                max_key_length: parse_optional_int(&p, "--max-keylen"),
+                most_frequent_char: parse_optional_int(&p, "--char"),
+                text_charset: get_charset(p.get_str("--text-charset"))?
+                    .as_bytes()
+                    .to_vec(),
+                known_plain: p.get_str("--known-plaintext").bytes().collect(),
+                threshold: parse_optional_int(&p, "--threshold"),
+            })
+        }
+        Err(e) => Err(XorError::ArgError { msg: e.to_string() }),
     }
+    // .unwrap_or_else(|e| e.exit());
 }
