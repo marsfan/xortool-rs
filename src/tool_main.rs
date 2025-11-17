@@ -476,7 +476,7 @@ fn produce_plaintext(
         }
         // FIXME: write(format) vs write_fmt(format_args)
         key_mapping
-            .write(format!("{file_name};{key_repr}").as_bytes())
+            .write_all(format!("{file_name};{key_repr}").as_bytes())
             .unwrap();
         // FIXME: SHould be repr(key_char_used[key])
         perc_mapping

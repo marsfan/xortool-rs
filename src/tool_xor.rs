@@ -87,9 +87,9 @@ pub fn main() {
     }
 
     let result = xor(datas, cycle);
-    stdout().write(&result).unwrap();
+    stdout().write_all(&result).unwrap();
     if newline {
-        stdout().write("\n".as_bytes()).unwrap();
+        stdout().write_all("\n".as_bytes()).unwrap();
     }
     stdout().flush().unwrap();
 }
