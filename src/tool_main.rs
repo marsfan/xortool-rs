@@ -399,7 +399,14 @@ fn to_printable_key(bytes: &[u8]) -> String {
         }
     }
     // To match the original test, we don't want to escape the quote character.
-    result.replace("\\\"", "\"").replace("\\'", "'")
+    let result = result.replace("\\\"", "\"");
+    let result = if result.contains('\'') && !result.contains('"') {
+        result.replace("\\'", "'")
+    } else {
+        result
+    };
+    result
+    // result.replace("\\\"", "\"") //.replace("\\'", "'")
 }
 
 // -----------------------------------------------------------------------------
@@ -465,7 +472,7 @@ fn produce_plaintext(
 
     for (index, key) in keys.iter().enumerate() {
         let key_index = format!(
-            "{index:0<width$}",
+            "{index:0>width$}",
             width = format!("{}", (keys.len() - 1)).len(),
         );
         // FIXME: SHould be repr(key) in python
@@ -487,12 +494,21 @@ fn produce_plaintext(
             count_valid += 1;
         }
         // FIXME: write(format) vs write_fmt(format_args)
-        key_mapping
-            .write_all(format!("{file_name};{key_repr}").as_bytes())
-            .unwrap();
+        if key_repr.contains('\'') && !key_repr.contains("\\'") {
+            key_mapping
+                .write_all(format!("{file_name};b\"{key_repr}\"\n").as_bytes())
+                .unwrap();
+        } else {
+            key_mapping
+                .write_all(format!("{file_name};b'{key_repr}'\n").as_bytes())
+                .unwrap();
+        }
         // FIXME: SHould be repr(key_char_used[key])
         perc_mapping
-            .write_fmt(format_args!("{file_name};{:?};{perc}", key_char_used[key]))
+            .write_fmt(format_args!(
+                "{file_name};{:?};{perc}\n",
+                key_char_used[key]
+            ))
             .unwrap();
         if !param.filter_output || (param.filter_output && perc > threshold_valid) {
             fs::write(file_name, dexored).unwrap();
