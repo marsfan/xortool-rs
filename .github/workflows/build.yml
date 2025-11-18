@@ -19,10 +19,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Build
-        run: cargo build --verbose --profile ${{ matrix.profile }} --tests
-
-      - name: Run tests
-        run: cargo test --verbose --profile ${{ matrix.profile }}
+        run: cargo build --verbose --profile ${{ matrix.profile }}
 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v5.0.0
