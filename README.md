@@ -1,6 +1,9 @@
 # xortool-rs
 
-A re-wite of [xortool.py](https://github.com/hellman/xortool) using rust for performance.
+A re-wite of [xortool.py](https://github.com/hellman/xortool) using Rust for
+performance.
+
+The original tool (xortool) is written in Python, and was MIT Licensed.
 
 Supports:
 
@@ -9,8 +12,8 @@ Supports:
 
 ## Versioning Plans
 
-Version 1.0 will execute the test script from the original xortool and
-produce the same output, and the code will be visibly similar to the
+Version 1.0 executes the test script from the original xortool and
+produces the same output, and the code will be visibly similar to the
 original tools Python source
 
 All later versions will focus on re-writing the code to better leverage
