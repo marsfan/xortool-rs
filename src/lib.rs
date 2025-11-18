@@ -8,4 +8,4 @@ pub mod tool_main;
 pub mod tool_xor;
 
 // FIXME: Read this from crate info?
-const VERSION: &str = "0.0.1";
+const VERSION: &str = "1.0.0";
