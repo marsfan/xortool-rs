@@ -51,8 +51,17 @@ fn parse_optional_int(parsed: &ArgvMap, arg: &str) -> Option<i32> {
     }
 }
 
-pub fn parse_parameters(doc: &str, version: &str) -> Result<Parameters, XorError> {
-    let p = Docopt::new(doc).and_then(|dopt| dopt.version(Some(version.to_string())).parse());
+pub fn parse_parameters(
+    doc: &str,
+    version: &str,
+    args: Option<Vec<String>>,
+) -> Result<Parameters, XorError> {
+    let args = match args {
+        Some(a) => a,
+        None => std::env::args().collect(),
+    };
+    let p = Docopt::new(doc)
+        .and_then(|dopt| dopt.version(Some(version.to_string())).argv(args).parse());
     match p {
         Ok(p) => Ok(Parameters {
             brute_chars: p.get_bool("--brute-chars"),

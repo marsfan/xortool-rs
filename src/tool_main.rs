@@ -69,16 +69,16 @@ use crate::{
     routine::{decode_from_hex, die, load_file, rmdir},
 };
 
-pub fn main() {
-    let result = main_inner();
+pub fn main(args: Option<Vec<String>>) {
+    let result = main_inner(args);
     match result {
         Ok(()) => (),
         Err(e) => eprintln!("{e}"),
     }
 }
 
-fn main_inner() -> Result<(), XorError> {
-    let mut param = parse_parameters(&DOC, VERSION)?;
+fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
+    let mut param = parse_parameters(&DOC, VERSION, args)?;
     let ciphertext = get_ciphertext(&param);
     if param.known_key_length.is_none() {
         param.known_key_length = Some(guess_key_length(&ciphertext, &param)?)
