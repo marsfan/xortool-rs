@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 
 use crate::{
     VERSION,
-    colors::{C_BEST_KEYLEN, C_BEST_PROB, C_FATAL, C_KEYLEN, C_PROB},
+    colors::{C_BEST_KEYLEN, C_BEST_PROB, C_KEYLEN, C_PROB},
     error::XorError,
     routine::{dexor, mkdir},
 };

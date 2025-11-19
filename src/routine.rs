@@ -16,10 +16,6 @@ pub fn load_file(filename: &str) -> Vec<u8> {
     std::fs::read(filename).unwrap()
 }
 
-pub fn save_file(filename: String, data: &[u8]) {
-    std::fs::write(filename, data).unwrap()
-}
-
 pub fn mkdir(dirname: &str) -> Result<(), XorError> {
     if fs::exists(&dirname).unwrap() {
         return Ok(());
