@@ -16,30 +16,30 @@ pub struct Parameters {
     pub input_is_hex: bool,
     pub known_key_length: Option<i32>,
     pub max_key_length: Option<i32>,
-    pub most_frequent_char: Option<i32>,
+    pub most_frequent_char: Option<u8>,
     pub text_charset: Vec<u8>,
     pub known_plain: Vec<u8>,
     pub threshold: Option<i32>,
 }
 
-fn parse_char(ch: Option<&str>) -> Option<i32> {
-    match ch {
-        Some(mut c) => {
-            if c.len() == 1 {
-                return Some(c.bytes().collect::<Vec<u8>>()[0].into());
-            }
-            if c[0..2] == *"0x" || c[0..2] == *"\\x" {
-                c = &c[2..];
-            }
-            if c.len() == 0 {
-                panic!("Empty Char");
-            }
-            if c.len() > 2 {
-                panic!("Char can be only a char letter or hex");
-            }
-            return Some(i32::from_str_radix(c, 16).unwrap());
+fn parse_char(parsed: &ArgvMap, arg: &str) -> Option<u8> {
+    let mut ch = parsed.get_str(arg);
+    if ch.is_empty() {
+        None
+    } else {
+        if ch.len() == 1 {
+            return Some(ch.bytes().collect::<Vec<u8>>()[0].into());
         }
-        None => None,
+        if ch[0..2] == *"0x" || ch[0..2] == *"\\x" {
+            ch = &ch[2..];
+        }
+        if ch.len() == 0 {
+            panic!("Empty Char");
+        }
+        if ch.len() > 2 {
+            panic!("Char can be only a char letter or hex");
+        }
+        return Some(u8::from_str_radix(ch, 16).unwrap());
     }
 }
 
@@ -85,7 +85,7 @@ pub fn parse_parameters(doc: &str, version: &str) -> Result<Parameters, XorError
                 input_is_hex: p.get_bool("--hex"),
                 known_key_length: parse_optional_int(&p, "--key-length"),
                 max_key_length: parse_optional_int(&p, "--max-keylen"),
-                most_frequent_char: parse_optional_int(&p, "--char"),
+                most_frequent_char: parse_char(&p, "--char"),
                 text_charset: get_charset(p.get_str("--text-charset"))?
                     .as_bytes()
                     .to_vec(),
