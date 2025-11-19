@@ -1,0 +1,56 @@
+name: Create Release on Tag
+
+on:
+  push:
+    tags: [releases/v*]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}-latest
+
+    strategy:
+      matrix:
+        os: [ubuntu, windows, macos]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build
+        run: cargo build --verbose --release
+
+      - name: Gather Binaries
+        run: python3 .github/workflows/prepare_release.py target/release xortool-${{ matrix.os }} xortool xortool-xor
+
+      - name: Upload zip as artifact
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          # A file, directory or wildcard pattern that describes what to upload
+          path: xortool-${{ matrix.os }}.zip
+          name: xortool-${{ matrix.os }}
+          # we are uploading zips that are already compressed.
+          # Nesting compression will just add unnecessary time
+          compression-level: 0
+
+  create_release:
+    runs-on: ubuntu-latest
+    name: create-release
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5
+
+      - name: Print folderr
+        run: ls *
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: xortool-*/xortool-*.zip
+          name: ${{ github.ref_name }}
