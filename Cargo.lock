@@ -149,7 +149,7 @@ checksum = "13c928103a1f21ddb6d6f46c1b0ea6193e6d6f28d0535cfa90fbd9eeb6cfdbfa"
 
 [[package]]
 name = "xortool-rs"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "docopt",
  "getopt",
