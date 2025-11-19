@@ -34,11 +34,16 @@ example: xor -s lol -h 414243 -f /etc/passwd
     );
 }
 
-pub fn main() {
+pub fn main(args: Option<Vec<String>>) {
     let mut cycle = true;
     let mut newline = true;
 
-    let stdin_args: Vec<String> = std::env::args().collect();
+    // Use input arg if provided, otherwise read from stdin
+    let stdin_args = match args {
+        Some(a) => a,
+        None => std::env::args().collect(),
+    };
+
     let no_doubles: Vec<String> = stdin_args
         .clone()
         .into_iter()
