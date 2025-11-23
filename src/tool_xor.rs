@@ -4,6 +4,7 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 use std::{
+    env,
     io::{Read, Write, stdout},
     process::exit,
 };
@@ -91,8 +92,18 @@ pub fn main(args: Option<Vec<String>>) {
     }
 
     if datas.is_empty() {
-        eprintln!("error: no data given");
-        eprintln!("{}", *DOC);
+        let line_end = if env::consts::OS == "windows" {
+            "\r\n"
+        } else {
+            "\n"
+        };
+        let msg = if env::consts::OS == "windows" {
+            (*DOC).replace("\n", "\r\n")
+        } else {
+            DOC.to_string()
+        };
+        eprint!("error: no data given{line_end}");
+        eprint!("{msg}{line_end}");
         exit(1)
     }
 
@@ -134,6 +145,11 @@ fn from_file(s: &str) -> Vec<u8> {
 }
 
 fn arg_data(opt: &str, s: &str) -> Vec<u8> {
+    let line_end = if env::consts::OS == "windows" {
+        "\r\n"
+    } else {
+        "\n"
+    };
     match opt {
         "s" => from_str(s),
         "r" => s.bytes().collect(),
@@ -148,8 +164,13 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
             .collect(),
         "f" => from_file(s),
         _ => {
-            eprintln!("unknown option -{opt}");
-            eprintln!("{}", *DOC);
+            eprint!("unknown option -{opt}{line_end}");
+            let msg = if env::consts::OS == "windows" {
+                (*DOC).replace("\n", "\r\n")
+            } else {
+                DOC.to_string()
+            };
+            eprint!("{msg}{line_end}");
             exit(1)
         }
     }
