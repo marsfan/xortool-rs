@@ -1,0 +1,42 @@
+name: Rust
+
+on: push
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        profile: [dev, release]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build
+        run: cargo build --verbose --profile ${{ matrix.profile }}
+
+  smoketest:
+    name: Smoke Test
+    runs-on: ${{ matrix.os  }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Python Dependencies
+        run: pip install xortool pytest
+
+      - name: Build Crate
+        run: cargo build --verbose --release
+
+      - name: Run Smoke Tests
+        run: pytest tests/test_smoke.py
