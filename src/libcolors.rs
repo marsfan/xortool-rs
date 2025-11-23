@@ -4,7 +4,7 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::{collections::HashMap, env};
 // FIXME: Probably could replace this whole thing with some sort of crate.
 
 lazy_static! {
@@ -90,7 +90,7 @@ pub fn color(color: &str, bgcolor: &str, attrs: &str) -> String {
     let mut ret = String::from("\x1b[0");
     if attrs != "" {
         for attr in attrs.to_lowercase().split_whitespace() {
-            // FIXME: Something similarr tto pythons strip method instead?
+            // FIXME: Something similar tto pythons strip method instead?
             let attr = attr.replace(",", "").replace("+", "").replace("|", "");
             if !BASH_ATTRIBUTES.contains_key(attr.as_str()) {
                 panic!("Unknown color attribute: {attr}");
@@ -121,8 +121,10 @@ pub fn color(color: &str, bgcolor: &str, attrs: &str) -> String {
 }
 
 pub fn is_bash() -> bool {
-    // FIXME: Actually implement this properly.
-    return false;
+    match env::var("SHELL") {
+        Ok(v) => v.ends_with("bash"),
+        Err(_) => false,
+    }
 }
 
 fn _keys_sorted_by_value(adict: HashMap<&'static str, &'static str>) -> Vec<String> {
