@@ -6,8 +6,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build
+  unittest:
+    name: Unit Tests
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -20,6 +20,9 @@ jobs:
 
       - name: Build
         run: cargo build --verbose --profile ${{ matrix.profile }}
+
+      - name: Run Tests
+        run: cargo test --verbose --profile ${{ matrix.profile }}
 
   smoketest:
     name: Smoke Test
