@@ -576,3 +576,71 @@ fn cleanup() {
         rmdir(DIRNAME);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_ciphertext() {
+        let param = Parameters {
+            filename: String::from("tests/small_file.txt"),
+            ..Default::default()
+        };
+        assert_eq!(get_ciphertext(&param), "Hello World!".as_bytes())
+    }
+
+    #[test]
+    fn test_get_ciphertext_hex() {
+        let param = Parameters {
+            filename: String::from("tests/small_file_hex.txt"),
+            input_is_hex: true,
+            ..Default::default()
+        };
+        assert_eq!(get_ciphertext(&param), "Hello World".as_bytes())
+    }
+
+    #[test]
+    fn test_calc_fitness_sum() {
+        let fitnesses = [(1, 3.2), (5, 8.3), (7, 9.3)];
+        assert_eq!(calc_fitness_sum(&fitnesses), 20.8);
+    }
+
+    #[test]
+    fn test_count_equals() {
+        let text = "Hello World!".as_bytes();
+        assert_eq!(count_equals(text, 2), 1)
+    }
+
+    #[test]
+    fn test_count_equals_large_key() {
+        assert_eq!(count_equals("Hi".as_bytes(), 4), 0);
+    }
+
+    #[test]
+    fn test_get_max_fitnessed_key_length() {
+        let fitnesses = [(1, 3.2), (5, 18.3), (7, 9.3)];
+        assert_eq!(get_max_fitnessed_key_length(&fitnesses), 5);
+    }
+
+    #[test]
+    fn test_chars_count_at_offset() {
+        let text = "Hello World!".as_bytes();
+        let mut expected = HashMap::new();
+        expected.insert(' ' as u8, 1);
+        expected.insert('l' as u8, 2);
+        expected.insert('o' as u8, 1);
+        expected.insert('!' as u8, 1);
+        assert_eq!(chars_count_at_offset(text, 2, 3), expected)
+    }
+
+    #[test]
+    fn test_percentage_valid() {
+        let p = Parameters {
+            text_charset: vec!['a' as u8, 'b' as u8, 'c' as u8],
+            ..Default::default()
+        };
+        let text = "hela abc";
+        assert_eq!(percentage_valid(text.as_bytes(), &p), 0.5)
+    }
+}

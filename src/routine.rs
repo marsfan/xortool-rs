@@ -75,3 +75,43 @@ pub fn die(exit_message: String, exit_code: i32) {
 
 // `is_linux` and `alphanum` in the original source are dead code.
 // never used anywhere, so I just removed them.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_load_file() {
+        assert_eq!(load_file("tests/small_file.txt"), "Hello World!".as_bytes());
+    }
+
+    #[test]
+    fn test_mkdir_already_exists() {
+        assert_eq!(mkdir("src"), Ok(()))
+    }
+
+    #[test]
+    fn test_mkdir_error() {
+        let result = mkdir("src/hello/world");
+        // Exact message is platform specific, so just check to make sure the right error type is created.
+        match result {
+            Ok(_) => assert!(false),
+            Err(e) => match e {
+                XorError::MkdirError { msg: _ } => assert!(true),
+                _ => assert!(false),
+            },
+        }
+    }
+
+    #[test]
+    fn test_decode_from_hex() {
+        let input = "48 65 6C 6C 6F 20 57 6F 72 6C 64".as_bytes();
+        assert_eq!(decode_from_hex(input), "Hello World".as_bytes());
+    }
+
+    #[test]
+    fn test_dexor() {
+        let text = vec![1, 2, 3, 4, 5, 6, 7, 8];
+        let key = vec![3, 2, 1];
+        assert_eq!(dexor(&text, &key), vec![2, 0, 2, 7, 7, 7, 4, 10]);
+    }
+}

@@ -7,6 +7,7 @@ use docopt::{ArgvMap, Docopt};
 
 use crate::{charset::get_charset, error::XorError};
 
+#[derive(Default)]
 pub struct Parameters {
     pub brute_chars: bool,
     pub brute_printable: bool,

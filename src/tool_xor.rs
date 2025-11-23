@@ -175,3 +175,49 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_str() {
+        assert_eq!(from_str("Hello \\tWorld!"), "Hello \tWorld!".as_bytes())
+    }
+
+    mod test_arg_data {
+        use super::*;
+
+        #[test]
+        fn test_s() {
+            assert_eq!(
+                arg_data("s", "Hello \\tWorld!"),
+                "Hello \tWorld!".as_bytes()
+            );
+        }
+
+        #[test]
+        fn test_r() {
+            assert_eq!(
+                arg_data("r", "Hello \\tWorld!"),
+                "Hello \\tWorld!".as_bytes()
+            );
+        }
+
+        #[test]
+        fn test_h() {
+            assert_eq!(
+                arg_data("h", "48 65 6C 6C 6F 20 57 6F 72 6C 64"),
+                "Hello World".as_bytes()
+            );
+        }
+
+        #[test]
+        fn test_f() {
+            assert_eq!(
+                arg_data("f", "tests/small_file.txt"),
+                "Hello World!".as_bytes()
+            );
+        }
+    }
+}
