@@ -22,7 +22,6 @@ license = "MPL-2.0"
 [dependencies]
 docopt = "1.1.1"
 getopt = "1.1.9"
-lazy_static = "1.5.0"
 unicode_escape = "0.1.0"
 
 [lints.clippy]

@@ -3,48 +3,44 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
-use lazy_static::lazy_static;
-use std::{collections::HashMap, env, fmt::Write as _, string};
 // FIXME: Probably could replace this whole thing with some sort of crate.
+use std::{collections::HashMap, env, fmt::Write as _, string, sync::LazyLock};
 
-lazy_static! {
-    static ref BASH_ATTRIBUTES: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
-        m.insert("regular", "0");
-        m.insert("bold", "1");
-        m.insert("underline", "4");
-        m.insert("strike", "9");
-        m.insert("light", "1");
-        m.insert("dark", "2");
-        m.insert("invert", "7");// invert bg and fg
-        m
-    };
-    static ref BASH_COLORS: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
-        m.insert("black", "30");
-        m.insert("red", "31");
-        m.insert("green", "32");
-        m.insert("yellow", "33");
-        m.insert("blue", "34");
-        m.insert("purple", "35");
-        m.insert("cyan", "36");
-        m.insert("white", "37");
-        m
-    };
-
-    static ref BASH_BGCOLORS: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
-        m.insert("black", "40");
-        m.insert("red", "41");
-        m.insert("green", "42");
-        m.insert("yellow", "43");
-        m.insert("blue", "44");
-        m.insert("purple", "45");
-        m.insert("cyan", "46");
-        m.insert("white", "47");
-        m
-    };
-}
+static BASH_ATTRIBUTES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+    let mut m = HashMap::new();
+    m.insert("regular", "0");
+    m.insert("bold", "1");
+    m.insert("underline", "4");
+    m.insert("strike", "9");
+    m.insert("light", "1");
+    m.insert("dark", "2");
+    m.insert("invert", "7"); // invert bg and fg
+    m
+});
+static BASH_COLORS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+    let mut m = HashMap::new();
+    m.insert("black", "30");
+    m.insert("red", "31");
+    m.insert("green", "32");
+    m.insert("yellow", "33");
+    m.insert("blue", "34");
+    m.insert("purple", "35");
+    m.insert("cyan", "36");
+    m.insert("white", "37");
+    m
+});
+static BASH_BGCOLORS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+    let mut m = HashMap::new();
+    m.insert("black", "40");
+    m.insert("red", "41");
+    m.insert("green", "42");
+    m.insert("yellow", "43");
+    m.insert("blue", "44");
+    m.insert("purple", "45");
+    m.insert("cyan", "46");
+    m.insert("white", "47");
+    m
+});
 
 pub fn _main() {
     let header = color("white", "black", "dark");

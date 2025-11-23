@@ -153,6 +153,5 @@ version = "1.0.2"
 dependencies = [
  "docopt",
  "getopt",
- "lazy_static",
  "unicode_escape",
 ]

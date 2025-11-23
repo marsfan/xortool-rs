@@ -5,34 +5,33 @@
 */
 use std::collections::HashMap;
 use std::fmt::Write as _;
-
-use lazy_static::lazy_static;
+use std::sync::LazyLock;
 
 use crate::error::XorError;
 // FIXME: Generally, there's a lot here that could be cleaned up
 
-lazy_static! {
+static CHARSETS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+    let mut m = HashMap::new();
+    m.insert("a", "abcdefghijklmnopqrstuvwxyz");
+    m.insert("A", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    m.insert("1", "0123456789");
+    m.insert("!", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
+    // NOTE: Rust does not seem to support \v and \f escape characters, so we used \x0b and \x0c instead, as those are allowed
+    m.insert("*", "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c");
+    m
+});
 
-    static ref CHARSETS: HashMap<&'static str, &'static str> = {
+pub static PREDEFINED_CHARSETS: LazyLock<HashMap<&'static str, &'static str>> =
+    LazyLock::new(|| {
         let mut m = HashMap::new();
-        m.insert("a", "abcdefghijklmnopqrstuvwxyz");
-        m.insert("A", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-        m.insert("1", "0123456789");
-        m.insert("!", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
-        // NOTE: Rust does not seem to support \v and \f escape characters, so we used \x0b and \x0c instead, as those are allowed
-        m.insert("*", "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c");
-        m
-    };
-
-    pub static ref PREDEFINED_CHARSETS: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
-        m.insert("base32","ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=");
-        m.insert("base64","abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/+=");
+        m.insert("base32", "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=");
+        m.insert(
+            "base64",
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/+=",
+        );
         m.insert("printable", CHARSETS.get("*").unwrap());
         m
-    };
-
-}
+    });
 
 pub fn get_charset(charset: &str) -> Result<String, XorError> {
     let charset = if charset.is_empty() {
@@ -46,7 +45,7 @@ pub fn get_charset(charset: &str) -> Result<String, XorError> {
 
     let mut chars = String::new();
     for c in charset.chars() {
-        if (*CHARSETS).contains_key(c.to_string().as_str()) {
+        if CHARSETS.contains_key(c.to_string().as_str()) {
             write!(chars, "{}", CHARSETS.get(c.to_string().as_str()).unwrap()).unwrap();
         } else {
             return Err(XorError::CharsetError { charset: c });

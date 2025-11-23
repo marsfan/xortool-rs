@@ -3,8 +3,6 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
-use lazy_static::lazy_static;
-
 use crate::{
     VERSION,
     colors::{C_BEST_KEYLEN, C_BEST_PROB, C_FATAL, C_KEYLEN, C_PROB},
@@ -13,12 +11,11 @@ use crate::{
 };
 use std::{
     ascii::escape_default, collections::HashMap, env, fmt::Write as _, fs, io::Write as _,
-    path::MAIN_SEPARATOR, process::exit,
+    path::MAIN_SEPARATOR, process::exit, sync::LazyLock,
 };
-lazy_static! {
 
-
-    static ref DOC: String = format!("
+static DOC: LazyLock<String> = LazyLock::new(|| {
+    format!("
 xortool {VERSION}\
 A tool to do some xor analysis:
 - guess the key length (based on count of equal chars)
@@ -60,9 +57,8 @@ xortool -l 11 -c 20 file.bin
 xortool -x -c ' ' file.hex
 xortool -b -f -l 23 -t base64 message.enc
 xortool -r 80 -p \"flag{{\" -c ' ' message.enc
-");
-
-}
+")
+});
 const DIRNAME: &str = "xortool_out";
 
 use crate::{

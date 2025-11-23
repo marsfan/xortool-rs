@@ -7,17 +7,16 @@ use std::{
     env, fs, io,
     io::{Read as _, Write as _, stdout},
     process::exit,
+    sync::LazyLock,
     vec::Vec,
 };
 use unicode_escape::decode;
 
 use getopt::Opt;
-use lazy_static::lazy_static;
 
 use crate::VERSION;
-
-lazy_static! {
-    static ref DOC: String = format!(
+static DOC: LazyLock<String> = LazyLock::new(|| {
+    format!(
         "
 xortool-xor {VERSION}
 xor strings
@@ -33,8 +32,8 @@ options:
     --no-cycle / --nc  -  pad smaller strings with null bytes
 example: xor -s lol -h 414243 -f /etc/passwd
 "
-    );
-}
+    )
+});
 
 pub fn main(args: Option<Vec<String>>) {
     let mut cycle = true;
@@ -99,7 +98,7 @@ pub fn main(args: Option<Vec<String>>) {
             "\n"
         };
         let msg = if env::consts::OS == "windows" {
-            (*DOC).replace('\n', "\r\n")
+            DOC.replace('\n', "\r\n")
         } else {
             DOC.to_string()
         };
@@ -167,7 +166,7 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
         _ => {
             eprint!("unknown option -{opt}{line_end}");
             let msg = if env::consts::OS == "windows" {
-                (*DOC).replace('\n', "\r\n")
+                DOC.replace('\n', "\r\n")
             } else {
                 DOC.to_string()
             };
