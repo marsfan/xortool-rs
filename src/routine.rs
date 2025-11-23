@@ -3,7 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
-use std::{fs, io::Read};
+use std::{env, fs, io::Read};
 
 use crate::error::XorError;
 
@@ -65,7 +65,11 @@ pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {
 }
 
 pub fn die(exit_message: String, exit_code: i32) {
-    println!("{exit_message}");
+    if env::consts::OS == "windows" {
+        println!("{exit_message}\r");
+    } else {
+        println!("{exit_message}");
+    }
     std::process::exit(exit_code);
 }
 

@@ -11,7 +11,10 @@ use crate::{
     error::XorError,
     routine::{dexor, mkdir},
 };
-use std::{ascii::escape_default, collections::HashMap, fs, io::Write, path::MAIN_SEPARATOR};
+use std::{
+    ascii::escape_default, collections::HashMap, env, fs, io::Write, path::MAIN_SEPARATOR,
+    process::exit,
+};
 lazy_static! {
 
 
@@ -71,9 +74,17 @@ use crate::{
 
 pub fn main(args: Option<Vec<String>>) {
     let result = main_inner(args);
+    let line_end = if env::consts::OS == "windows" {
+        "\r\n"
+    } else {
+        "\n"
+    };
     match result {
         Ok(()) => (),
-        Err(e) => eprintln!("{e}"),
+        Err(e) => {
+            print!("{e}{line_end}");
+            exit(1)
+        }
     }
 }
 
@@ -190,7 +201,12 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
 }
 
 fn print_fitnesses(fitnesses: &[(i32, f64)]) {
-    println!("The most probable key lengths:");
+    let line_end = if env::consts::OS == "windows" {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    print!("The most probable key lengths:{line_end}");
 
     // Top sorted by fitness, but print sorted by length.
     // NOTE: Original Python had sorting here, but we moved it to outer
@@ -208,8 +224,8 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     for (key_length, fitness) in top10 {
         let pct = 100.0 * fitness * 1.0 / fitness_sum;
         if fitness == best_fitness {
-            println!(
-                "{}{key_length:>width$}{}: {}{pct:5.1}%{}",
+            print!(
+                "{}{key_length:>width$}{}: {}{pct:5.1}%{}{line_end}",
                 *C_BEST_KEYLEN,
                 *C_RESET,
                 *C_BEST_PROB,
@@ -217,8 +233,8 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
                 width = largest_width
             );
         } else {
-            println!(
-                "{}{key_length:>width$}{}: {}{pct:5.1}%{}",
+            print!(
+                "{}{key_length:>width$}{}: {}{pct:5.1}%{}{line_end}",
                 *C_KEYLEN,
                 *C_RESET,
                 *C_PROB,
@@ -253,6 +269,11 @@ fn count_equals(text: &[u8], key_length: i32) -> i32 {
 }
 
 fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32 {
+    let line_end = if env::consts::OS == "windows" {
+        "\r\n"
+    } else {
+        "\n"
+    };
     let max_key_len = match param.max_key_length {
         Some(i) => i,
         None => 0,
@@ -271,7 +292,10 @@ fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32
     let mut ret = 2;
     for (number, divisors_count) in divisors_counts.iter().enumerate() {
         if divisors_count == max_divisors {
-            println!("Key-length can be {}{}*n{}", *C_DIV, number, *C_RESET);
+            print!(
+                "Key-length can be {}{}*n{}{line_end}",
+                *C_DIV, number, *C_RESET
+            );
             ret = number;
             limit -= 1;
             if limit == 0 {
@@ -369,12 +393,17 @@ fn all_keys(key_possible_bytes: &Vec<Vec<u8>>, key_part: &[u8], offset: usize) -
 }
 
 fn print_keys(keys: &Vec<Vec<u8>>) {
+    let line_end = if env::consts::OS == "windows" {
+        "\r\n"
+    } else {
+        "\n"
+    };
     if keys.len() == 0 {
-        println!("No keys guessed!");
+        print!("No keys guessed!{line_end}");
         return;
     }
-    println!(
-        "{}{}{} possible key(s) of length {}{}{}:",
+    print!(
+        "{}{}{} possible key(s) of length {}{}{}:{line_end}",
         C_COUNT.to_string(),
         keys.len(),
         C_RESET.to_string(),
@@ -384,15 +413,15 @@ fn print_keys(keys: &Vec<Vec<u8>>) {
     );
 
     for key in keys.iter().take(5) {
-        println!(
-            "{}{}{}",
+        print!(
+            "{}{}{}{line_end}",
             C_KEY.to_string(),
             to_printable_key(key),
             C_RESET.to_string()
         );
     }
     if keys.len() > 10 {
-        println!("...");
+        print!("...{line_end}");
     }
 }
 
@@ -443,6 +472,12 @@ fn produce_plaintext(
     cleanup();
     mkdir(DIRNAME)?;
 
+    let line_end = if env::consts::OS == "windows" {
+        "\r\n"
+    } else {
+        "\n"
+    };
+
     // this is split up in two files since the
     // key can contain all kinds of characters
     let fn_key_mapping = "filename-key.csv";
@@ -462,10 +497,10 @@ fn produce_plaintext(
         .unwrap();
 
     key_mapping
-        .write_fmt(format_args!("file_name;key_repr\n"))
+        .write_fmt(format_args!("file_name;key_repr{line_end}"))
         .unwrap();
     perc_mapping
-        .write_fmt(format_args!("file_name;char_used;perc_valid\n"))
+        .write_fmt(format_args!("file_name;char_used;perc_valid{line_end}"))
         .unwrap();
 
     let threshold_valid = match param.threshold {
@@ -501,17 +536,17 @@ fn produce_plaintext(
         // FIXME: write(format) vs write_fmt(format_args)
         if key_repr.contains('\'') && !key_repr.contains("\\'") {
             key_mapping
-                .write_all(format!("{file_name};b\"{key_repr}\"\n").as_bytes())
+                .write_all(format!("{file_name};b\"{key_repr}\"{line_end}").as_bytes())
                 .unwrap();
         } else {
             key_mapping
-                .write_all(format!("{file_name};b'{key_repr}'\n").as_bytes())
+                .write_all(format!("{file_name};b'{key_repr}'{line_end}").as_bytes())
                 .unwrap();
         }
         // FIXME: SHould be repr(key_char_used[key])
         perc_mapping
             .write_fmt(format_args!(
-                "{file_name};{:?};{perc}\n",
+                "{file_name};{:?};{perc}{line_end}",
                 key_char_used[key]
             ))
             .unwrap();
@@ -530,8 +565,8 @@ fn produce_plaintext(
             String::from_utf8(param.known_plain.clone()).unwrap()
         ));
     }
-    println!("{msg}");
-    println!("See files {fn_key_mapping}, {fn_perc_mapping}");
+    print!("{msg}{line_end}");
+    print!("See files {fn_key_mapping}, {fn_perc_mapping}{line_end}");
 
     Ok(())
 }

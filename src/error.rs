@@ -3,7 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
-use std::{error::Error, fmt::Display};
+use std::{env, error::Error, fmt::Display};
 
 #[derive(Debug)]
 pub enum XorError {
@@ -30,7 +30,11 @@ impl Display for XorError {
             Self::MkdirError { msg } => ("Can't create directory", msg.clone()),
             Self::UnicodeDecodeError { msg } => ("Input is not hex", msg.clone()),
         };
-        write!(f, "[ERROR] {type_str}:\n\t{details}")
+        if env::consts::OS == "windows" {
+            write!(f, "[ERROR] {type_str}:\r\n\t{details}")
+        } else {
+            write!(f, "[ERROR] {type_str}:\n\t{details}")
+        }
     }
 }
 impl Error for XorError {}
