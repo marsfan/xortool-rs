@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 
 use crate::{
     VERSION,
-    colors::{C_BEST_KEYLEN, C_BEST_PROB, C_KEYLEN, C_PROB},
+    colors::{C_BEST_KEYLEN, C_BEST_PROB, C_FATAL, C_KEYLEN, C_PROB},
     error::XorError,
     routine::{dexor, mkdir},
 };
@@ -82,7 +82,7 @@ pub fn main(args: Option<Vec<String>>) {
     match result {
         Ok(()) => (),
         Err(e) => {
-            print!("{e}{line_end}");
+            print!("{}{e}{}{line_end}", *C_FATAL, *C_RESET);
             exit(1)
         }
     }
