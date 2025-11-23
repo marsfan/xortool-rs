@@ -132,3 +132,18 @@ fn _keys_sorted_by_value(adict: HashMap<&'static str, &'static str>) -> Vec<Stri
     keys.sort_by_key(|v| adict.get(v.as_str()));
     keys
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keys_sorted_by_value() {
+        let mut data = HashMap::new();
+        data.insert("key1", "C");
+        data.insert("key2", "A");
+        data.insert("key3", "B");
+
+        assert_eq!(_keys_sorted_by_value(data), vec!["key2", "key3", "key1"]);
+    }
+}

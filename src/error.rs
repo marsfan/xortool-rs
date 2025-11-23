@@ -5,7 +5,7 @@
 */
 use std::{env, error::Error, fmt::Display};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum XorError {
     AnalysisError { msg: String },
     ArgError { msg: String },
@@ -38,3 +38,90 @@ impl Display for XorError {
     }
 }
 impl Error for XorError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fmt_analysis_error() {
+        let err = XorError::AnalysisError {
+            msg: String::from("ABCD"),
+        };
+
+        if env::consts::OS == "windows" {
+            assert_eq!(err.to_string(), "[ERROR] Analysis error:\r\n\tABCD");
+        } else {
+            assert_eq!(err.to_string(), "[ERROR] Analysis error:\n\tABCD");
+        }
+    }
+
+    #[test]
+    fn test_fmt_arg_error() {
+        let err = XorError::ArgError {
+            msg: String::from("ABCD"),
+        };
+
+        if env::consts::OS == "windows" {
+            assert_eq!(err.to_string(), "[ERROR] Bad argument:\r\n\tABCD");
+        } else {
+            assert_eq!(err.to_string(), "[ERROR] Bad argument:\n\tABCD");
+        }
+    }
+
+    #[test]
+    fn test_fmt_charset_error() {
+        let err = XorError::CharsetError { charset: 'Q' };
+
+        if env::consts::OS == "windows" {
+            assert_eq!(
+                err.to_string(),
+                "[ERROR] Bad charset:\r\n\t ('Bad character set: ', 'Q') "
+            );
+        } else {
+            assert_eq!(
+                err.to_string(),
+                "[ERROR] Bad charset:\n\t ('Bad character set: ', 'Q') "
+            );
+        }
+    }
+
+    #[test]
+    fn test_ioerror() {
+        let err = XorError::IOError {
+            msg: String::from("ABCD"),
+        };
+
+        if env::consts::OS == "windows" {
+            assert_eq!(err.to_string(), "[ERROR] Can't load file:\r\n\tABCD");
+        } else {
+            assert_eq!(err.to_string(), "[ERROR] Can't load file:\n\tABCD");
+        }
+    }
+
+    #[test]
+    fn test_mkdir_error() {
+        let err = XorError::MkdirError {
+            msg: String::from("ABCD"),
+        };
+
+        if env::consts::OS == "windows" {
+            assert_eq!(err.to_string(), "[ERROR] Can't create directory:\r\n\tABCD");
+        } else {
+            assert_eq!(err.to_string(), "[ERROR] Can't create directory:\n\tABCD");
+        }
+    }
+
+    #[test]
+    fn test_unicode_decode_error() {
+        let err = XorError::UnicodeDecodeError {
+            msg: String::from("ABCD"),
+        };
+
+        if env::consts::OS == "windows" {
+            assert_eq!(err.to_string(), "[ERROR] Input is not hex:\r\n\tABCD");
+        } else {
+            assert_eq!(err.to_string(), "[ERROR] Input is not hex:\n\tABCD");
+        }
+    }
+}

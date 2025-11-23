@@ -49,3 +49,41 @@ pub fn get_charset(charset: &str) -> Result<String, XorError> {
     }
     return Ok(chars);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_str() {
+        assert_eq!(
+            get_charset(""),
+            Ok(PREDEFINED_CHARSETS["printable"].to_string())
+        );
+    }
+
+    #[test]
+    fn test_predefined_charsets() {
+        for c in PREDEFINED_CHARSETS.keys() {
+            assert_eq!(get_charset(c), Ok(PREDEFINED_CHARSETS[c].to_string()))
+        }
+    }
+
+    #[test]
+    fn test_building_charset() {
+        assert_eq!(
+            get_charset("aA"),
+            Ok(String::from(
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            ))
+        );
+    }
+
+    #[test]
+    fn test_invalid_charset() {
+        assert_eq!(
+            get_charset("aZ"),
+            Err(XorError::CharsetError { charset: 'Z' })
+        )
+    }
+}
