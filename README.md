@@ -12,9 +12,11 @@ Supports:
 
 ## Versioning Plans
 
-Version 1.0 executes the test script from the original xortool and
+Version 1.0.x executes the test script from the original xortool (v1.1.0) and
 produces the same output, and the code will be visibly similar to the
 original tools Python source
 
-All later versions will focus on re-writing the code to better leverage
-Rust, and to improve performance.
+Version 1.x.x will contined to have the same output, but will have
+re-working of the code to be more performant, and to leverage the Rust
+langauge better.
+
