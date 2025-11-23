@@ -4,6 +4,7 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 use docopt::{ArgvMap, Docopt};
+use std::env;
 
 use crate::{charset::get_charset, error::XorError};
 
@@ -28,18 +29,14 @@ fn parse_char(parsed: &ArgvMap, arg: &str) -> Option<u8> {
         None
     } else {
         if ch.len() == 1 {
-            return Some(ch.bytes().collect::<Vec<u8>>()[0].into());
+            return Some(ch.bytes().collect::<Vec<u8>>()[0]);
         }
         if ch[0..2] == *"0x" || ch[0..2] == *"\\x" {
             ch = &ch[2..];
         }
-        if ch.len() == 0 {
-            panic!("Empty Char");
-        }
-        if ch.len() > 2 {
-            panic!("Char can be only a char letter or hex");
-        }
-        return Some(u8::from_str_radix(ch, 16).unwrap());
+        assert!(!ch.is_empty(), "Empty Char");
+        assert!(ch.len() <= 2, "Char can be only a char letter or hex");
+        Some(u8::from_str_radix(ch, 16).unwrap())
     }
 }
 
@@ -59,18 +56,19 @@ pub fn parse_parameters(
 ) -> Result<Parameters, XorError> {
     let args = match args {
         Some(a) => a,
-        None => std::env::args().collect(),
+        None => env::args().collect(),
     };
-    let p = Docopt::new(doc)
-        .and_then(|dopt| dopt.version(Some(version.to_string())).argv(args).parse());
+    let p =
+        Docopt::new(doc).and_then(|dopt| dopt.version(Some(version.to_owned())).argv(args).parse());
     match p {
         Ok(p) => Ok(Parameters {
             brute_chars: p.get_bool("--brute-chars"),
             brute_printable: p.get_bool("--brute-printable"),
+
             filename: if p.get_str("FILE").is_empty() {
-                "-".to_string()
+                "-".to_owned()
             } else {
-                p.get_str("FILE").to_string()
+                p.get_str("FILE").to_owned()
             },
             filter_output: p.get_bool("--filter-output"),
             input_is_hex: p.get_bool("--hex"),

@@ -4,7 +4,7 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 use lazy_static::lazy_static;
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, fmt::Write as _, string};
 // FIXME: Probably could replace this whole thing with some sort of crate.
 
 lazy_static! {
@@ -48,15 +48,15 @@ lazy_static! {
 
 pub fn _main() {
     let header = color("white", "black", "dark");
-    println!("");
+    println!();
 
     println!(
         "{header}       Colors and backgrounds:      {}",
         color("", "", "")
     );
-    for c in _keys_sorted_by_value(BASH_COLORS.clone()) {
+    for c in keys_sorted_by_value(&BASH_COLORS) {
         let c1 = color(&c, "", "");
-        let c2_name = if c != "white" { "white" } else { "black" };
+        let c2_name = if c == "white" { "black" } else { "white" };
         let c2 = color(c2_name, &c, "");
         println!(
             "{c:<10}{c1}colored text{}    {c2}background{}",
@@ -64,13 +64,13 @@ pub fn _main() {
             color("", "", "")
         );
     }
-    println!("");
+    println!();
 
     println!(
         "{header}            Attributes:             {}",
         color("", "", "")
     );
-    for c in _keys_sorted_by_value(BASH_ATTRIBUTES.clone()) {
+    for c in keys_sorted_by_value(&BASH_ATTRIBUTES) {
         let c1 = color("red", "", &c);
         let c2 = color("white", "", &c);
         println!(
@@ -79,44 +79,42 @@ pub fn _main() {
             color("", "", "")
         );
     }
-    println!("");
+    println!();
 }
 
 pub fn color(color: &str, bgcolor: &str, attrs: &str) -> String {
     if !is_bash() {
-        return String::from("");
+        return String::new();
     }
 
     let mut ret = String::from("\x1b[0");
-    if attrs != "" {
+    if !attrs.is_empty() {
         for attr in attrs.to_lowercase().split_whitespace() {
             // FIXME: Something similar tto pythons strip method instead?
-            let attr = attr.replace(",", "").replace("+", "").replace("|", "");
-            if !BASH_ATTRIBUTES.contains_key(attr.as_str()) {
-                panic!("Unknown color attribute: {attr}");
-            }
-            ret.push_str(";");
-            ret.push_str(BASH_ATTRIBUTES.get(attr.as_str()).unwrap());
+            let attr = attr.replace([',', '+', '|'], "");
+            assert!(
+                BASH_ATTRIBUTES.contains_key(attr.as_str()),
+                "Unknown color attribute: {attr}"
+            );
+            write!(ret, ";{}", BASH_ATTRIBUTES.get(attr.as_str()).unwrap()).unwrap();
         }
     }
 
-    if color != "" {
-        if !BASH_COLORS.contains_key(&color) {
-            panic!("Unknown color: {color}");
-        }
-        ret.push_str(";");
-        ret.push_str(BASH_COLORS.get(&color).unwrap());
+    if !color.is_empty() {
+        assert!(BASH_COLORS.contains_key(&color), "Unknown color: {color}");
+
+        write!(ret, ";{}", BASH_COLORS.get(&color).unwrap()).unwrap();
     }
 
-    if bgcolor != "" {
-        if !BASH_BGCOLORS.contains_key(&bgcolor) {
-            panic!("Unknown background color: {bgcolor}");
-        }
-        ret.push_str(";");
-        ret.push_str(BASH_BGCOLORS.get(&bgcolor).unwrap());
+    if !bgcolor.is_empty() {
+        assert!(
+            BASH_BGCOLORS.contains_key(&bgcolor),
+            "Unknown background color: {bgcolor}"
+        );
+        write!(ret, ";{}", BASH_BGCOLORS.get(&bgcolor).unwrap()).unwrap();
     }
 
-    ret.push_str("m");
+    ret.push('m');
     ret
 }
 
@@ -127,8 +125,8 @@ pub fn is_bash() -> bool {
     }
 }
 
-fn _keys_sorted_by_value(adict: HashMap<&'static str, &'static str>) -> Vec<String> {
-    let mut keys: Vec<String> = adict.keys().map(|v| v.to_string()).collect();
+fn keys_sorted_by_value(adict: &HashMap<&'static str, &'static str>) -> Vec<String> {
+    let mut keys: Vec<String> = adict.keys().map(string::ToString::to_string).collect();
     keys.sort_by_key(|v| adict.get(v.as_str()));
     keys
 }
@@ -144,6 +142,6 @@ mod tests {
         data.insert("key2", "A");
         data.insert("key3", "B");
 
-        assert_eq!(_keys_sorted_by_value(data), vec!["key2", "key3", "key1"]);
+        assert_eq!(keys_sorted_by_value(&data), vec!["key2", "key3", "key1"]);
     }
 }

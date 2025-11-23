@@ -3,32 +3,32 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
-use std::{env, fs, io::Read};
+use std::{env, fs, io, io::Read as _, process::exit};
 
 use crate::error::XorError;
 
 pub fn load_file(filename: &str) -> Vec<u8> {
     if filename == "-" {
         let mut buf = Vec::new();
-        std::io::stdin().read_to_end(&mut buf).unwrap();
+        io::stdin().read_to_end(&mut buf).unwrap();
         return buf;
     }
-    std::fs::read(filename).unwrap()
+    fs::read(filename).unwrap()
 }
 
 pub fn mkdir(dirname: &str) -> Result<(), XorError> {
-    if fs::exists(&dirname).unwrap() {
-        return Ok(());
+    if fs::exists(dirname).unwrap() {
+        Ok(())
     } else {
-        match fs::create_dir(&dirname) {
-            Ok(_) => Ok(()),
+        match fs::create_dir(dirname) {
+            Ok(()) => Ok(()),
             Err(e) => Err(XorError::MkdirError { msg: e.to_string() }),
         }
     }
 }
 
 pub fn rmdir(dirname: &str) {
-    let metadata = fs::symlink_metadata(&dirname).unwrap();
+    let metadata = fs::symlink_metadata(dirname).unwrap();
     let file_type = metadata.file_type();
     if file_type.is_symlink() {
         return; // do not clear link - we can get out of dir
@@ -45,7 +45,11 @@ pub fn decode_from_hex(text: &[u8]) -> Vec<u8> {
         }
     }
     let mut result = Vec::new();
-    assert_eq!(only_hex_digits.len() % 2, 0);
+    assert_eq!(
+        only_hex_digits.len() % 2,
+        0,
+        "Odd number of characters after extracting only hex digits."
+    );
     for chunk in only_hex_digits.chunks_exact(2) {
         let chunk_str = String::from_utf8(chunk.to_vec()).unwrap();
 
@@ -70,7 +74,7 @@ pub fn die(exit_message: String, exit_code: i32) {
     } else {
         println!("{exit_message}");
     }
-    std::process::exit(exit_code);
+    exit(exit_code);
 }
 
 // `is_linux` and `alphanum` in the original source are dead code.

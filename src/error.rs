@@ -3,7 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
-use std::{env, error::Error, fmt::Display};
+use std::{env, error::Error, fmt};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum XorError {
@@ -17,8 +17,8 @@ pub enum XorError {
     UnicodeDecodeError { msg: String },
 }
 
-impl Display for XorError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for XorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (type_str, details) = match self {
             Self::AnalysisError { msg } => ("Analysis error", msg.clone()),
             Self::ArgError { msg } => ("Bad argument", msg.clone()),

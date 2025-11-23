@@ -4,9 +4,10 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 use std::{
-    env,
-    io::{Read, Write, stdout},
+    env, fs, io,
+    io::{Read as _, Write as _, stdout},
     process::exit,
+    vec::Vec,
 };
 use unicode_escape::decode;
 
@@ -42,7 +43,7 @@ pub fn main(args: Option<Vec<String>>) {
     // Use input arg if provided, otherwise read from stdin
     let stdin_args = match args {
         Some(a) => a,
-        None => std::env::args().collect(),
+        None => env::args().collect(),
     };
 
     let no_doubles: Vec<String> = stdin_args
@@ -70,7 +71,7 @@ pub fn main(args: Option<Vec<String>>) {
     }
     // Collect long args. Luckily there's no long args that take parameters, so
     // this is really easy.
-    for arg in stdin_args.iter() {
+    for arg in &stdin_args {
         if arg.starts_with("--") {
             collected_args.push((arg.clone(), String::new()));
         }
@@ -98,7 +99,7 @@ pub fn main(args: Option<Vec<String>>) {
             "\n"
         };
         let msg = if env::consts::OS == "windows" {
-            (*DOC).replace("\n", "\r\n")
+            (*DOC).replace('\n', "\r\n")
         } else {
             DOC.to_string()
         };
@@ -116,7 +117,7 @@ pub fn main(args: Option<Vec<String>>) {
 }
 
 fn xor(mut args: Vec<Vec<u8>>, cycle: bool) -> Vec<u8> {
-    args.sort_by_key(|v| v.len());
+    args.sort_by_key(Vec::len);
     // Pop First then reverse is the same as popping first item after reversing
     let mut res = args.pop().unwrap();
     args.reverse();
@@ -138,10 +139,10 @@ fn from_str(s: &str) -> Vec<u8> {
 fn from_file(s: &str) -> Vec<u8> {
     if s == "-" {
         let mut buf = Vec::new();
-        std::io::stdin().read_to_end(&mut buf).unwrap();
+        io::stdin().read_to_end(&mut buf).unwrap();
         return buf;
     }
-    std::fs::read(s).unwrap()
+    fs::read(s).unwrap()
 }
 
 fn arg_data(opt: &str, s: &str) -> Vec<u8> {
@@ -155,7 +156,7 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
         "r" => s.bytes().collect(),
         //FIXME: There has to be a way to make this a bit nicer looking
         "h" => s
-            .replace(" ", "")
+            .replace(' ', "")
             .chars()
             .collect::<Vec<char>>()
             .chunks(2)
@@ -166,7 +167,7 @@ fn arg_data(opt: &str, s: &str) -> Vec<u8> {
         _ => {
             eprint!("unknown option -{opt}{line_end}");
             let msg = if env::consts::OS == "windows" {
-                (*DOC).replace("\n", "\r\n")
+                (*DOC).replace('\n', "\r\n")
             } else {
                 DOC.to_string()
             };

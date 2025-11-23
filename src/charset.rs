@@ -4,6 +4,7 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 use std::collections::HashMap;
+use std::fmt::Write as _;
 
 use lazy_static::lazy_static;
 
@@ -34,7 +35,11 @@ lazy_static! {
 }
 
 pub fn get_charset(charset: &str) -> Result<String, XorError> {
-    let charset = if charset == "" { "printable" } else { charset };
+    let charset = if charset.is_empty() {
+        "printable"
+    } else {
+        charset
+    };
     if PREDEFINED_CHARSETS.contains_key(charset) {
         return Ok(PREDEFINED_CHARSETS.get(charset).unwrap().to_string());
     }
@@ -42,12 +47,12 @@ pub fn get_charset(charset: &str) -> Result<String, XorError> {
     let mut chars = String::new();
     for c in charset.chars() {
         if (*CHARSETS).contains_key(c.to_string().as_str()) {
-            chars.push_str(CHARSETS.get(c.to_string().as_str()).unwrap());
+            write!(chars, "{}", CHARSETS.get(c.to_string().as_str()).unwrap()).unwrap();
         } else {
             return Err(XorError::CharsetError { charset: c });
         }
     }
-    return Ok(chars);
+    Ok(chars)
 }
 
 #[cfg(test)]

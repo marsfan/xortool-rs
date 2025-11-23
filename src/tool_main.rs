@@ -12,8 +12,8 @@ use crate::{
     routine::{dexor, mkdir},
 };
 use std::{
-    ascii::escape_default, collections::HashMap, env, fs, io::Write, path::MAIN_SEPARATOR,
-    process::exit,
+    ascii::escape_default, collections::HashMap, env, fmt::Write as _, fs, io::Write as _,
+    path::MAIN_SEPARATOR, process::exit,
 };
 lazy_static! {
 
@@ -92,7 +92,7 @@ fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
     let mut param = parse_parameters(&DOC, VERSION, args)?;
     let ciphertext = get_ciphertext(&param);
     if param.known_key_length.is_none() {
-        param.known_key_length = Some(guess_key_length(&ciphertext, &param)?)
+        param.known_key_length = Some(guess_key_length(&ciphertext, &param)?);
     }
 
     let try_chars: Vec<u8> = if param.brute_chars {
@@ -104,13 +104,12 @@ fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
             .bytes()
             .collect()
     } else if param.most_frequent_char.is_some() {
-        vec![param.most_frequent_char.unwrap().try_into().unwrap()]
+        vec![param.most_frequent_char.unwrap()]
     } else {
         die(
             format!(
                 "{}Most possible char is needed to guess the key!{}",
-                C_WARN.to_string(),
-                C_RESET.to_string()
+                *C_WARN, *C_RESET
             ),
             1,
         );
@@ -167,10 +166,8 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
     let mut pprev = 0.0;
     let mut fitnesses = Vec::new();
 
-    let max_key_len = match param.max_key_length {
-        Some(i) => i,
-        None => 0,
-    };
+    let max_key_len = param.max_key_length.unwrap_or_default();
+
     let range_end = match param.max_key_length {
         Some(i) => i + 1,
         None => 0,
@@ -179,9 +176,9 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
     let mut outer_key_len = 0;
 
     for key_length in 1..range_end {
-        let fitness = count_equals(text, key_length) as f64;
+        let fitness = f64::from(count_equals(text, key_length));
 
-        let fitness = fitness / (max_key_len as f64 + (key_length as f64).powf(1.5));
+        let fitness = fitness / (f64::from(max_key_len) + (f64::from(key_length)).powf(1.5));
 
         if pprev < prev && prev > fitness {
             // Local maximum
@@ -212,7 +209,7 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     // NOTE: Original Python had sorting here, but we moved it to outer
     // function. See the outer function for a comment on why
 
-    let mut top10: Vec<(i32, f64)> = fitnesses.iter().take(10).map(|v| v.clone()).collect();
+    let mut top10: Vec<(i32, f64)> = fitnesses.iter().take(10).copied().collect();
     let best_fitness = top10[0].1;
     top10.sort_by_key(|v| v.0);
 
@@ -274,10 +271,8 @@ fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32
     } else {
         "\n"
     };
-    let max_key_len = match param.max_key_length {
-        Some(i) => i,
-        None => 0,
-    };
+    let max_key_len = param.max_key_length.unwrap_or_default();
+
     let mut divisors_counts = Vec::from([0]).repeat(usize::try_from(max_key_len).unwrap() + 1);
     for (key_length, _) in fitnesses {
         for number in 3..(key_length + 1) {
@@ -358,10 +353,8 @@ fn guess_probable_keys_for_chars(
 }
 
 fn guess_keys(text: &[u8], most_char: u8, param: &Parameters) -> Vec<Vec<u8>> {
-    let key_length = match param.known_key_length {
-        Some(i) => i,
-        None => 0,
-    };
+    let key_length = param.known_key_length.unwrap_or_default();
+
     let mut key_possible_bytes = Vec::new();
     for _ in 0..key_length {
         key_possible_bytes.push(Vec::new());
@@ -387,38 +380,33 @@ fn all_keys(key_possible_bytes: &Vec<Vec<u8>>, key_part: &[u8], offset: usize) -
     for c in &key_possible_bytes[offset] {
         let mut tmp = key_part.to_vec();
         tmp.push(*c);
-        keys.extend(all_keys(&key_possible_bytes, &tmp, offset + 1));
+        keys.extend(all_keys(key_possible_bytes, &tmp, offset + 1));
     }
     keys
 }
 
-fn print_keys(keys: &Vec<Vec<u8>>) {
+fn print_keys(keys: &[Vec<u8>]) {
     let line_end = if env::consts::OS == "windows" {
         "\r\n"
     } else {
         "\n"
     };
-    if keys.len() == 0 {
+    if keys.is_empty() {
         print!("No keys guessed!{line_end}");
         return;
     }
     print!(
         "{}{}{} possible key(s) of length {}{}{}:{line_end}",
-        C_COUNT.to_string(),
+        *C_COUNT,
         keys.len(),
-        C_RESET.to_string(),
-        C_COUNT.to_string(),
+        *C_RESET,
+        *C_COUNT,
         keys[0].len(),
-        C_RESET.to_string()
+        *C_RESET
     );
 
     for key in keys.iter().take(5) {
-        print!(
-            "{}{}{}{line_end}",
-            C_KEY.to_string(),
-            to_printable_key(key),
-            C_RESET.to_string()
-        );
+        print!("{}{}{}{line_end}", *C_KEY, to_printable_key(key), *C_RESET);
     }
     if keys.len() > 10 {
         print!("...{line_end}");
@@ -434,13 +422,11 @@ fn to_printable_key(bytes: &[u8]) -> String {
     }
     // To match the original test, we don't want to escape the quote character.
     let result = result.replace("\\\"", "\"");
-    let result = if result.contains('\'') && !result.contains('"') {
+    if result.contains('\'') && !result.contains('"') {
         result.replace("\\'", "'")
     } else {
         result
-    };
-    result
-    // result.replace("\\\"", "\"") //.replace("\\'", "'")
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -465,7 +451,7 @@ fn percentage_valid(text: &[u8], param: &Parameters) -> f64 {
 /// characters and used most frequent character
 fn produce_plaintext(
     ciphertext: &[u8],
-    keys: &Vec<Vec<u8>>,
+    keys: &[Vec<u8>],
     key_char_used: &HashMap<Vec<u8>, u8>,
     param: &Parameters,
 ) -> Result<(), XorError> {
@@ -483,13 +469,13 @@ fn produce_plaintext(
     let fn_key_mapping = "filename-key.csv";
     let fn_perc_mapping = "filename-char_used-perc_valid.csv";
 
-    let mut key_mapping = std::fs::OpenOptions::new()
+    let mut key_mapping = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
         .open(format!("{DIRNAME}{MAIN_SEPARATOR}{fn_key_mapping}"))
         .unwrap();
-    let mut perc_mapping = std::fs::OpenOptions::new()
+    let mut perc_mapping = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
@@ -503,10 +489,7 @@ fn produce_plaintext(
         .write_fmt(format_args!("file_name;char_used;perc_valid{line_end}"))
         .unwrap();
 
-    let threshold_valid = match param.threshold {
-        Some(t) => t,
-        None => 95,
-    };
+    let threshold_valid = param.threshold.unwrap_or(95);
 
     let mut count_valid = 0;
 
@@ -516,12 +499,12 @@ fn produce_plaintext(
             width = format!("{}", (keys.len() - 1)).len(),
         );
         // FIXME: SHould be repr(key) in python
-        let key_repr = format!("{}", to_printable_key(&key));
+        let key_repr = to_printable_key(key);
         let file_name = format!("{DIRNAME}{MAIN_SEPARATOR}{key_index}.out");
 
         let dexored = dexor(ciphertext, key);
         // ignore saving file when known plain is provided and output doesn't contain it
-        if param.known_plain.len() != 0
+        if !param.known_plain.is_empty()
             && !dexored
                 .windows(param.known_plain.len())
                 .collect::<Vec<&[u8]>>()
@@ -560,10 +543,12 @@ fn produce_plaintext(
         *C_COUNT, *C_RESET, *C_COUNT, *C_RESET
     );
     if !param.known_plain.is_empty() {
-        msg.push_str(&format!(
+        write!(
+            msg,
             " which contained '{}'",
             String::from_utf8(param.known_plain.clone()).unwrap()
-        ));
+        )
+        .unwrap();
     }
     print!("{msg}{line_end}");
     print!("See files {fn_key_mapping}, {fn_perc_mapping}{line_end}");
@@ -572,7 +557,7 @@ fn produce_plaintext(
 }
 
 fn cleanup() {
-    if std::fs::exists(DIRNAME).unwrap() {
+    if fs::exists(DIRNAME).unwrap() {
         rmdir(DIRNAME);
     }
 }
