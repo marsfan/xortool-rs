@@ -39,4 +39,4 @@ jobs:
         run: cargo build --verbose --release
 
       - name: Run Smoke Tests
-        run: pytest tests/test_smoke.py
+        run: pytest tests/test_smoke.py -v
