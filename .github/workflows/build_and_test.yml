@@ -16,7 +16,7 @@ jobs:
         profile: [dev, release]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Build
         run: cargo build --verbose --profile ${{ matrix.profile }}
@@ -33,7 +33,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout code
 
       - uses: actions/setup-python@v6
