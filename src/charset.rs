@@ -40,7 +40,7 @@ pub fn get_charset(charset: &str) -> Result<String, XorError> {
         charset
     };
     if PREDEFINED_CHARSETS.contains_key(charset) {
-        return Ok(PREDEFINED_CHARSETS.get(charset).unwrap().to_string());
+        return Ok((*PREDEFINED_CHARSETS.get(charset).unwrap()).to_owned());
     }
 
     let mut chars = String::new();

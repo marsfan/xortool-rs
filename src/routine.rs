@@ -68,7 +68,7 @@ pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {
     results
 }
 
-pub fn die(exit_message: String, exit_code: i32) {
+pub fn die(exit_message: &str, exit_code: i32) {
     if env::consts::OS == "windows" {
         println!("{exit_message}\r");
     } else {

@@ -59,6 +59,8 @@ exhaustive_enums = "allow"
 bool_assert_comparison = "allow"
 redundant_test_prefix = "allow"
 print_stderr = "allow"
+std_instead_of_alloc = "allow"
+std_instead_of_core = "allow"
 
 # Rules we might want to enable later
 missing_inline_in_public_items = "allow"

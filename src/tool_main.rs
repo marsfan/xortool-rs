@@ -10,8 +10,15 @@ use crate::{
     routine::{dexor, mkdir},
 };
 use std::{
-    ascii::escape_default, collections::HashMap, env, fmt::Write as _, fs, io::Write as _,
-    path::MAIN_SEPARATOR, process::exit, sync::LazyLock,
+    ascii::escape_default,
+    collections::{HashMap, hash_map::Entry},
+    env,
+    fmt::Write as _,
+    fs,
+    io::Write as _,
+    path::MAIN_SEPARATOR,
+    process::exit,
+    sync::LazyLock,
 };
 
 static DOC: LazyLock<String> = LazyLock::new(|| {
@@ -103,7 +110,7 @@ fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
         vec![param.most_frequent_char.unwrap()]
     } else {
         die(
-            format!(
+            &format!(
                 "{}Most possible char is needed to guess the key!{}",
                 *C_WARN, *C_RESET
             ),
@@ -270,8 +277,8 @@ fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32
     let max_key_len = param.max_key_length.unwrap_or_default();
 
     let mut divisors_counts = Vec::from([0]).repeat(usize::try_from(max_key_len).unwrap() + 1);
-    for (key_length, _) in fitnesses {
-        for number in 3..(key_length + 1) {
+    for &(key_length, _) in fitnesses {
+        for number in 3..=key_length {
             if key_length % number == 0 {
                 divisors_counts[usize::try_from(number).unwrap()] += 1;
             }
@@ -315,12 +322,15 @@ fn chars_count_at_offset(text: &[u8], key_length: i32, offset: i32) -> HashMap<u
         (usize::try_from(offset).unwrap()..text.len()).step_by(usize::try_from(key_length).unwrap())
     {
         let c = text[pos];
-        if chars_count.contains_key(&c) {
-            let tmp_ref = chars_count.get_mut(&c).unwrap();
-            *tmp_ref += 1;
-        } else {
-            chars_count.insert(c, 1);
-        }
+
+        match chars_count.entry(c) {
+            Entry::Vacant(e) => e.insert(1),
+            Entry::Occupied(e) => {
+                let tmp_ref = e.into_mut();
+                *tmp_ref += 1;
+                tmp_ref
+            }
+        };
     }
     chars_count
 }
@@ -359,8 +369,8 @@ fn guess_keys(text: &[u8], most_char: u8, param: &Parameters) -> Vec<Vec<u8>> {
     for offset in 0..key_length {
         let chars_count = chars_count_at_offset(text, key_length, offset);
         let max_count = *chars_count.values().max().unwrap();
-        for &character in chars_count.keys() {
-            if chars_count[&character] >= max_count {
+        for (character, count) in chars_count {
+            if count >= max_count {
                 key_possible_bytes[usize::try_from(offset).unwrap()].push(character ^ most_char);
             }
         }
@@ -529,7 +539,7 @@ fn produce_plaintext(
                 key_char_used[key]
             ))
             .unwrap();
-        if !param.filter_output || (param.filter_output && perc > threshold_valid) {
+        if !param.filter_output || (perc > threshold_valid) {
             fs::write(file_name, dexored).unwrap();
         }
     }

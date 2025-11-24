@@ -31,8 +31,11 @@ fn parse_char(parsed: &ArgvMap, arg: &str) -> Option<u8> {
         if ch.len() == 1 {
             return Some(ch.bytes().collect::<Vec<u8>>()[0]);
         }
-        if ch[0..2] == *"0x" || ch[0..2] == *"\\x" {
-            ch = &ch[2..];
+        if ch.starts_with("0x") {
+            ch = ch.strip_prefix("0x").unwrap();
+        }
+        if ch.starts_with("\\x") {
+            ch = ch.strip_prefix("\\x").unwrap();
         }
         assert!(!ch.is_empty(), "Empty Char");
         assert!(ch.len() <= 2, "Char can be only a char letter or hex");
