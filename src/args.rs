@@ -10,6 +10,10 @@ use std::env;
 use crate::{charset::get_charset, error::XorError};
 
 /// Structure holding parsed command line options
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This structure holds CLI args, lots of bools are expected as they are for flags."
+)]
 #[derive(Default)]
 pub struct Parameters {
     /// Whether or not to brute force all possible most frequent characters

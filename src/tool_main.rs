@@ -272,6 +272,10 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
 
     for (key_length, fitness) in top10 {
         let pct = 100.0 * fitness * 1.0 / fitness_sum;
+        #[expect(
+            clippy::float_cmp,
+            reason = "best_fitness is taken from within to10, so one is guaranteed to be an identical match."
+        )]
         if fitness == best_fitness {
             print!(
                 "{}{key_length:>width$}{}: {}{pct:5.1}%{}{line_end}",
@@ -304,7 +308,7 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
 fn calc_fitness_sum(fitnesses: &[(i32, f64)]) -> f64 {
     // FIXME: Probably a better way to do this
     let mut sum = 0.0;
-    for (_, val) in fitnesses {
+    for &(_, val) in fitnesses {
         sum += val;
     }
     sum
@@ -558,11 +562,11 @@ fn to_printable_key(bytes: &[u8]) -> String {
     let mut result = String::new();
     for &byte in bytes {
         for c in escape_default(byte) {
-            result.push(c as char);
+            result.push(c.into());
         }
     }
     // To match the original test, we don't want to escape the quote character.
-    let result = result.replace("\\\"", "\"");
+    result = result.replace("\\\"", "\"");
     if result.contains('\'') && !result.contains('"') {
         result.replace("\\'", "'")
     } else {
@@ -588,7 +592,14 @@ fn percentage_valid(text: &[u8], param: &Parameters) -> f64 {
             x += 1.0;
         }
     }
-    x / (text.len() as f64)
+    #[expect(
+        clippy::cast_precision_loss,
+        clippy::as_conversions,
+        reason = "Need to convert to float for division."
+    )]
+    {
+        x / (text.len() as f64)
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -661,6 +672,11 @@ fn produce_plaintext(
         {
             continue;
         }
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::as_conversions,
+            reason = "Value is always between 0 and 100, so casting rounded value to i32 is safe."
+        )]
         let perc = (100.0 * percentage_valid(&dexored, param)).round() as i32;
         if perc > threshold_valid {
             count_valid += 1;

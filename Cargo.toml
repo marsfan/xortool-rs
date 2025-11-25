@@ -67,19 +67,11 @@ missing_inline_in_public_items = "allow"
 must_use_candidate = "allow"
 unwrap_used = "allow"
 pattern_type_mismatch = "allow"
+exit = "allow"
+unwrap_in_result = "allow"
+create_dir = "allow"
+missing_trait_methods = "allow"
+iter_over_hash_type = "allow"
 
-
-# Individual rules instead of groups
-# missing_docs_in_private_items = "warn"
-# cargo_common_metadata = "warn"
-# unwrap_in_result = "warn"
-# match_bool = "warn"
-# uninlined_format_args = "warn"
-# needless_pass_by_value = "warn"
-# explicit_iter_loop = "warn"
-
-# must_use_candidate = { level = "allow", priority = -1 }
-
-# Allow multiple crate versions issue
-# caused by dependencies
-# multiple_crate_versions = { level = "allow", priority = 1 }
+similar_names = "allow"
+shadow_reuse = "allow"
