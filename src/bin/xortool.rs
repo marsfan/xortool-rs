@@ -3,6 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Binary for the xortool executable
 use xortool_rs::tool_main;
 
 fn main() {

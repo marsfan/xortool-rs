@@ -3,6 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Core logic for xortool
 use crate::{
     VERSION,
     colors::{C_BEST_KEYLEN, C_BEST_PROB, C_FATAL, C_KEYLEN, C_PROB},
@@ -21,6 +22,7 @@ use std::{
     sync::LazyLock,
 };
 
+/// Command line documentation for the tool
 static DOC: LazyLock<String> = LazyLock::new(|| {
     format!("
 xortool {VERSION}\
@@ -66,6 +68,9 @@ xortool -b -f -l 23 -t base64 message.enc
 xortool -r 80 -p \"flag{{\" -c ' ' message.enc
 ")
 });
+
+// TODO: Support changing with CLI arg
+/// Directory to put decrypted data in
 const DIRNAME: &str = "xortool_out";
 
 use crate::{
@@ -75,6 +80,11 @@ use crate::{
     routine::{decode_from_hex, die, load_file, rmdir},
 };
 
+/// Main function for xortool
+///
+/// # Arguments
+///   * `args`: Optional vector of arguments to parse. If not supplied,
+///     arguments are read from the command line instead.
 pub fn main(args: Option<Vec<String>>) {
     let result = main_inner(args);
     let line_end = if env::consts::OS == "windows" {
@@ -91,6 +101,14 @@ pub fn main(args: Option<Vec<String>>) {
     }
 }
 
+/// Inner logic of the main function for xortool
+///
+/// # Arguments
+///   * `args`: Optional vector of arguments to parse. If not supplied,
+///     arguments are read from the command line instead.
+///
+/// # Errors
+///   Returns any errors that occurred during tool execution
 fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
     let mut param = parse_parameters(&DOC, VERSION, args)?;
     let ciphertext = get_ciphertext(&param);
@@ -131,7 +149,13 @@ fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
     Ok(())
 }
 
-/// Loading ciphertext
+/// Read in the encrypted data
+///
+/// # Arguments
+///   * `param`: Command line parameters supplied to the tool
+///
+/// # Returns
+///   The bytes of the encrypted data.
 fn get_ciphertext(param: &Parameters) -> Vec<u8> {
     let ciphertext = load_file(&param.filename);
 
@@ -145,6 +169,17 @@ fn get_ciphertext(param: &Parameters) -> Vec<u8> {
 // KEYLENGTH GUESSING SECTION
 // -----------------------------------------------------------------------------
 
+/// Guess the length of the key used to encrypt the data
+///
+/// # Arguments
+///   * `text`: The encrypted data
+///   * `param`: Command line parameters provided to the tool
+///
+/// # Returns
+///   The guessed length of the key used to encrypt the data.
+///
+/// # Error
+///   Returns `AnalysisError` if no candidates could be found for key length.
 fn guess_key_length(text: &[u8], param: &Parameters) -> Result<i32, XorError> {
     let mut fitnesses = calculate_fitnesses(text, param);
     if fitnesses.is_empty() {
@@ -164,6 +199,15 @@ fn guess_key_length(text: &[u8], param: &Parameters) -> Result<i32, XorError> {
     Ok(get_max_fitnessed_key_length(&fitnesses))
 }
 
+/// Calculate fitness of different key lengths
+///
+/// # Arguments
+///   * `text`: The encrypted data to decode
+///   * `param`: The command line parameters passed to the tool
+///
+/// # Returns
+///   Vector of tuples. For each tuple, the first element is a key
+///   length, and the second is the fitness of that key length
 fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
     let mut prev = 0.0;
     let mut pprev = 0.0;
@@ -200,6 +244,11 @@ fn calculate_fitnesses(text: &[u8], param: &Parameters) -> Vec<(i32, f64)> {
     fitnesses
 }
 
+/// Pint out top 10 key lengths by fitness
+///
+/// # Argument
+///   * `fitnesses`: Slice of tuples of the fitnesses. First element in tuple
+///     is key length. Second is fitness as a float.
 fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     let line_end = if env::consts::OS == "windows" {
         "\r\n"
@@ -245,6 +294,13 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
     }
 }
 
+/// Compute the sum of all of the fitnesses
+///
+/// # Arguments
+///   * `fitnesses`: The fitnesses to sum
+///
+/// # Returns
+///   Sum of all of the fitnesses
 fn calc_fitness_sum(fitnesses: &[(i32, f64)]) -> f64 {
     // FIXME: Probably a better way to do this
     let mut sum = 0.0;
@@ -254,7 +310,14 @@ fn calc_fitness_sum(fitnesses: &[(i32, f64)]) -> f64 {
     sum
 }
 
-///Count equal chars count for each offset and sum them
+/// Count number of equal characters at all offsets up to `key_length` and sum
+///
+/// # Arguments
+///   * `text`: The text to count the characters of
+///   * `key_length`: The length of the key used to encrypt the data
+///
+/// # Returns
+///   Sum of the counts of most common character at each offset up to `key_length`
 fn count_equals(text: &[u8], key_length: i32) -> i32 {
     let mut equals_count = 0;
     if usize::try_from(key_length).unwrap() >= text.len() {
@@ -268,6 +331,13 @@ fn count_equals(text: &[u8], key_length: i32) -> i32 {
     equals_count
 }
 
+/// Guess and print common divisions and return the most common divisor
+///
+/// # Arguments
+///   * `fitnesses`: Slice of tuples of (key length, fitness)
+///
+/// # Returns
+///   The most common divisor.
 fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32 {
     let line_end = if env::consts::OS == "windows" {
         "\r\n"
@@ -304,6 +374,13 @@ fn guess_and_print_divisors(fitnesses: &[(i32, f64)], param: &Parameters) -> i32
     ret.try_into().unwrap()
 }
 
+/// Get the key length that has the highest fitness
+///
+/// # Arguments
+///   * `fitnesses`: Slice of tuples of (key length, fitness)
+///
+/// # Returns
+///   The key length that has the highest fitness.
 fn get_max_fitnessed_key_length(fitnesses: &[(i32, f64)]) -> i32 {
     let mut max_fitness = 0.0;
     let mut max_fitnessed_key_length = 0;
@@ -316,6 +393,21 @@ fn get_max_fitnessed_key_length(fitnesses: &[(i32, f64)]) -> i32 {
     max_fitnessed_key_length
 }
 
+/// Count occurrences of characters starting at `offset` every `key_length`
+///
+/// Starting at the index `offset`, for ever `key_length` characters, the
+/// value of a character is read and recorded. The total counts of found
+/// characters are then returned.
+///
+/// # Arguments
+///   * `text`: Data to count characters of
+///   * `key_length`: The length of the key used to encrypt the data
+///   * `offset`: Offset to start point for counting characters
+///
+/// # Returns
+///
+///  `HashMap` where the keys are characters found in the data set, and the
+///   values are the number of occurrences of the character.
 fn chars_count_at_offset(text: &[u8], key_length: i32, offset: i32) -> HashMap<u8, i32> {
     let mut chars_count = HashMap::new();
     for pos in
@@ -339,6 +431,16 @@ fn chars_count_at_offset(text: &[u8], key_length: i32, offset: i32) -> HashMap<u
 // KEYS GUESSING SECTION
 // -----------------------------------------------------------------------------
 
+/// Guess probably keys for all of a list of possible most common characters
+///
+/// # Arguments
+///   * `text`: The encrypted data
+///   * `try_chars`: Characters to try as the most common character.
+///   * `param`: Command line parameters supplied to the tool
+///
+/// # Returns
+///   * Vector of Vectors, where each inner vector is the bytes of a probable key
+///   * `HashMap` that maps the probable keys to the most common char they were found by.
 fn guess_probable_keys_for_chars(
     text: &[u8],
     try_chars: &[u8],
@@ -358,6 +460,15 @@ fn guess_probable_keys_for_chars(
     (probable_keys, key_char_used)
 }
 
+/// Guess keys for the given text, based on the known most frequent character
+///
+/// # Arguments:
+///   * `text`: The encrypted data
+///   * `most_char`: The most common character in the decrypted data
+///   * `param`: Command line parameters supplied to the tool.
+///
+/// # Returns
+///   Vector of vectors of bytes for possible keys
 fn guess_keys(text: &[u8], most_char: u8, param: &Parameters) -> Vec<Vec<u8>> {
     let key_length = param.known_key_length.unwrap_or_default();
 
@@ -378,6 +489,19 @@ fn guess_keys(text: &[u8], most_char: u8, param: &Parameters) -> Vec<Vec<u8>> {
     all_keys(&key_possible_bytes, &[], 0)
 }
 
+/// Product all combinations of possible key chars
+///
+/// # Arguments
+///   * `key_possible_bytes`: Vector of vectors, where each sub-vector
+///     is a set of characers used in a key
+///   * `key_part`: Portion of a possible key
+///   * `offset`: Offset into `key_possible_bytes` to loop over.
+///
+/// # Warning
+///   This function is recursive
+///
+/// # Returns
+///   Vector of vectors of the possible key combinations
 fn all_keys(key_possible_bytes: &Vec<Vec<u8>>, key_part: &[u8], offset: usize) -> Vec<Vec<u8>> {
     let mut keys = Vec::new();
     if offset >= key_possible_bytes.len() {
@@ -391,6 +515,10 @@ fn all_keys(key_possible_bytes: &Vec<Vec<u8>>, key_part: &[u8], offset: usize) -
     keys
 }
 
+/// Print out all of the keys that the tool has guessed
+///
+/// # Arguments
+///   * `keys`: The keys that the tool has guessed.
 fn print_keys(keys: &[Vec<u8>]) {
     let line_end = if env::consts::OS == "windows" {
         "\r\n"
@@ -419,6 +547,13 @@ fn print_keys(keys: &[Vec<u8>]) {
     }
 }
 
+/// Convert a key into printable format
+///
+/// # Arguments
+///   * `bytes`: The bytes of the key to compute
+///
+/// # Returns
+///   The key in a printable/displayable format.
 fn to_printable_key(bytes: &[u8]) -> String {
     let mut result = String::new();
     for &byte in bytes {
@@ -438,6 +573,14 @@ fn to_printable_key(bytes: &[u8]) -> String {
 // -----------------------------------------------------------------------------
 // RETURNS PERCENTAGE OF VALID TEXT CHARS
 // -----------------------------------------------------------------------------
+/// Calculate the percentage of characters in the text that are within the charset in use
+///
+/// # Arguments
+///   * `text`: The text to check
+///   * `param`: The parameters to use
+///
+/// # Returns
+///   Percentage of characters in `text` that are within the charset
 fn percentage_valid(text: &[u8], param: &Parameters) -> f64 {
     let mut x = 0.0;
     for c in text {
@@ -562,6 +705,8 @@ fn produce_plaintext(
     Ok(())
 }
 
+// FIXME: Make this smarter/safer?
+/// Delete the output directory if it already exists.
 fn cleanup() {
     if fs::exists(DIRNAME).unwrap() {
         rmdir(DIRNAME);

@@ -3,6 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Character set definitions for the tool.
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::sync::LazyLock;
@@ -10,6 +11,7 @@ use std::sync::LazyLock;
 use crate::error::XorError;
 // FIXME: Generally, there's a lot here that could be cleaned up
 
+/// Mapping of the short forms to sets of characters
 static CHARSETS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
     m.insert("a", "abcdefghijklmnopqrstuvwxyz");
@@ -21,6 +23,7 @@ static CHARSETS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|
     m
 });
 
+/// Mapping of some pre-defined character sets.
 pub static PREDEFINED_CHARSETS: LazyLock<HashMap<&'static str, &'static str>> =
     LazyLock::new(|| {
         let mut m = HashMap::new();
@@ -33,6 +36,18 @@ pub static PREDEFINED_CHARSETS: LazyLock<HashMap<&'static str, &'static str>> =
         m
     });
 
+/// Get a character from the short form combination
+///
+/// # Arguments
+///   * `charset`: Either the name of a predefined charset to use, or
+///     A set of characters for the to combine
+///
+/// # Returns
+///   Created character set
+///
+/// # Errors
+///   Returns `XorError::CharsetError` if an invalid letter is used for
+///   building a charset.
 pub fn get_charset(charset: &str) -> Result<String, XorError> {
     let charset = if charset.is_empty() {
         "printable"

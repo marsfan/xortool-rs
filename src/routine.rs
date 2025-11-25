@@ -3,10 +3,19 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Various routines used by the tool
 use std::{env, fs, io, io::Read as _, process::exit};
 
 use crate::error::XorError;
 
+/// Load from a file (or stdin)
+///
+/// # Arguments
+///   * `filename`: The name of the file to load from, or `-` to load
+///     from standard input
+///
+/// # Returns
+///   Vector of the bytes read from the file, or standard input.
 pub fn load_file(filename: &str) -> Vec<u8> {
     if filename == "-" {
         let mut buf = Vec::new();
@@ -16,6 +25,13 @@ pub fn load_file(filename: &str) -> Vec<u8> {
     fs::read(filename).unwrap()
 }
 
+/// Create directory with the given name
+///
+/// # Arguments
+///   * `dirname`: The name of the directory to create
+///
+/// # Error
+///   creates `XorError::MkdirError` if creating the directory failed
 pub fn mkdir(dirname: &str) -> Result<(), XorError> {
     if fs::exists(dirname).unwrap() {
         Ok(())
@@ -27,6 +43,10 @@ pub fn mkdir(dirname: &str) -> Result<(), XorError> {
     }
 }
 
+/// Delete the given directory
+///
+/// # Arguments
+///   * `dirname`: The name of the directory to delete
 pub fn rmdir(dirname: &str) {
     let metadata = fs::symlink_metadata(dirname).unwrap();
     let file_type = metadata.file_type();
@@ -36,6 +56,16 @@ pub fn rmdir(dirname: &str) {
     fs::remove_dir_all(dirname).unwrap();
 }
 
+/// Decode a string of hexadecimal values into their values
+///
+/// This takes input text that is hex values (e.g. "01 3D DE AD BE EF")
+/// and parses the hex values into their character equivlents.
+///
+/// # Arguments
+///   * `text`: The bytes of the text to decode
+///
+/// # Returns
+///   Vector of the bytes of the decoded text.
 pub fn decode_from_hex(text: &[u8]) -> Vec<u8> {
     // FIXME: Can probably make this a lot cleaner
     let mut only_hex_digits = Vec::new();
@@ -58,6 +88,14 @@ pub fn decode_from_hex(text: &[u8]) -> Vec<u8> {
     result
 }
 
+/// Reverse xor encryption on a set of bytes
+///
+/// # Arguments
+///   * `text`: The xor-encoded data
+///   * `key`: The key used to encrypt the data
+///
+/// # Returns
+///   Decrypted bytes
 pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {
     let val_mod = key.len();
     let mut results = Vec::new();
@@ -68,6 +106,11 @@ pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {
     results
 }
 
+/// Exit the program and display the given error message
+///
+/// # Arguments
+///   * `exit_message`: The message to display on exit.
+///   * `exit_code`: The exit code to exit the program with.
 pub fn die(exit_message: &str, exit_code: i32) {
     if env::consts::OS == "windows" {
         println!("{exit_message}\r");

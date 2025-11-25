@@ -3,18 +3,42 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Custom error type for the tool
 use std::{env, error::Error, fmt};
 
+/// Enumeration of errors the tool may experience.
 #[derive(Debug, PartialEq, Eq)]
 pub enum XorError {
-    AnalysisError { msg: String },
-    ArgError { msg: String },
-    CharsetError { charset: char },
-    // FIXME: Nothing raises this right now. Need to link it to file input ops
-    IOError { msg: String },
-    MkdirError { msg: String },
-    // FIXME: Nothing raises this right now. Need to link to relevant stuff
-    UnicodeDecodeError { msg: String },
+    /// An error occurred during analysis of the data
+    AnalysisError {
+        /// Message with further details about the error.
+        msg: String,
+    },
+    /// An error occurred while parsing arguments
+    ArgError {
+        /// Message with further details about the error
+        msg: String,
+    },
+    /// Incorrect short form for a charset
+    CharsetError {
+        /// The invalid short form supplied.
+        charset: char,
+    },
+    /// Error occurred with data input/output
+    IOError {
+        /// Message with further details about the error
+        msg: String,
+    },
+    /// An error occurred when trying to create a directory
+    MkdirError {
+        /// Message with further details about the error
+        msg: String,
+    },
+    /// An error occurred decoding a string to bytes
+    UnicodeDecodeError {
+        /// Message with further details about the error
+        msg: String,
+    },
 }
 
 impl fmt::Display for XorError {

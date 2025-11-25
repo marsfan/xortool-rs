@@ -3,9 +3,11 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Support for bash colors
 // FIXME: Probably could replace this whole thing with some sort of crate.
 use std::{collections::HashMap, env, fmt::Write as _, string, sync::LazyLock};
 
+/// Table of different attributes supported by bash, and their integer codes
 static BASH_ATTRIBUTES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
     m.insert("regular", "0");
@@ -17,6 +19,8 @@ static BASH_ATTRIBUTES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
     m.insert("invert", "7"); // invert bg and fg
     m
 });
+
+/// Table of text colors supported by bash, and their integer codes.
 static BASH_COLORS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
     m.insert("black", "30");
@@ -29,6 +33,8 @@ static BASH_COLORS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::ne
     m.insert("white", "37");
     m
 });
+
+/// Table of background colors supported by bash, and their integer codes
 static BASH_BGCOLORS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
     m.insert("black", "40");
@@ -42,6 +48,7 @@ static BASH_BGCOLORS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::
     m
 });
 
+/// Main function for the colortest program.
 pub fn _main() {
     let header = color("white", "black", "dark");
     println!();
@@ -78,6 +85,19 @@ pub fn _main() {
     println!();
 }
 
+/// Create a single POSIX color/attribute setting string
+///
+/// # Arguments
+///  * `color`: The foreground color to set
+///  * `bgcolor`: The background color to set
+///  * `attr`: Attributes to set
+///
+/// # Returns
+///   Text for setting a POSIX terminal's colors and attributes.
+///
+/// # Panics
+///   This function will panic if an unknown color, background color, or
+///   attribute is supplied
 pub fn color(color: &str, bgcolor: &str, attrs: &str) -> String {
     if !is_bash() {
         return String::new();
@@ -114,6 +134,10 @@ pub fn color(color: &str, bgcolor: &str, attrs: &str) -> String {
     ret
 }
 
+/// Check if running in a bash shell
+///
+/// # Returns
+///   Boolean indicating if running in a bash shell
 pub fn is_bash() -> bool {
     match env::var("SHELL") {
         Ok(v) => v.ends_with("bash"),
@@ -121,6 +145,13 @@ pub fn is_bash() -> bool {
     }
 }
 
+/// Get the keys in a hashmap, sorted by their values.
+///
+/// # Arguments:
+///   * `adict`: The hashmap to get the keys from
+///
+/// # Returns
+///   Keys from the input hashmap, sorted by the values.
 fn keys_sorted_by_value(adict: &HashMap<&'static str, &'static str>) -> Vec<String> {
     let mut keys: Vec<String> = adict.keys().map(string::ToString::to_string).collect();
     keys.sort_by_key(|v| adict.get(v.as_str()));

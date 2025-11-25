@@ -3,6 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Library holding the code for xortool
 mod args;
 mod charset;
 mod colors;
@@ -13,4 +14,5 @@ pub mod tool_main;
 pub mod tool_xor;
 
 // https://stackoverflow.com/a/27841363
+/// The tool version (read from cargo metdata at build time)
 const VERSION: &str = env!("CARGO_PKG_VERSION");

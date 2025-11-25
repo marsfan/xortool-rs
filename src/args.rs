@@ -3,26 +3,58 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Command line argument parsing utilities.
 use docopt::{ArgvMap, Docopt};
 use std::env;
 
 use crate::{charset::get_charset, error::XorError};
 
+/// Structure holding parsed command line options
 #[derive(Default)]
 pub struct Parameters {
+    /// Whether or not to brute force all possible most frequent characters
     pub brute_chars: bool,
+
+    /// Whether or not to brute force all possible most frequent printable characters
     pub brute_printable: bool,
+
+    /// Name of the file to read in from
     pub filename: String,
+
+    /// Whether or not to filter outputs based on the charsett.
     pub filter_output: bool,
+
+    /// Whether or not the input is a hex-encoded string.
     pub input_is_hex: bool,
+
+    /// Optional known length of the key
     pub known_key_length: Option<i32>,
+
+    /// Maximum key length to probe.
     pub max_key_length: Option<i32>,
+
+    /// Known most frequent character in the plaintext
     pub most_frequent_char: Option<u8>,
+
+    /// Target text character set
     pub text_charset: Vec<u8>,
+
+    /// Known plaintext to use for decoding
     pub known_plain: Vec<u8>,
+
+    /// Threshold validity percentage (default: 95)
     pub threshold: Option<i32>,
 }
 
+/// Parse an argument into a u8 character.
+///
+/// # Arguments
+///   * `parsed`: The parsed arguments
+///   * `arg`: The argument to parse
+///
+/// # Returns
+///   The character converted to a `u8`, or `None` if the given argument
+///   was not provided.
 fn parse_char(parsed: &ArgvMap, arg: &str) -> Option<u8> {
     let mut ch = parsed.get_str(arg);
     if ch.is_empty() {
@@ -43,6 +75,15 @@ fn parse_char(parsed: &ArgvMap, arg: &str) -> Option<u8> {
     }
 }
 
+/// Parse an optional argument to an integer.
+///
+/// # Arguments
+///   * `parsed`: The parsed arguments
+///   * `arg`: The argument to parse
+///
+/// # Returns
+///   The argument as an integer, or `None` if the given argument
+///   was not provided.
 fn parse_optional_int(parsed: &ArgvMap, arg: &str) -> Option<i32> {
     let value = parsed.get_str(arg);
     if value.is_empty() {
@@ -52,6 +93,17 @@ fn parse_optional_int(parsed: &ArgvMap, arg: &str) -> Option<i32> {
     }
 }
 
+/// Parse parameters from the commandline using docopt
+///
+/// # Arguments
+///   * `doc`: The documentation to pass to docopt to use for parsing the
+///     arguments
+///   * `version`: The version number of the tool
+///   * `args`: The arguments to parse, or None to parse from the command
+///     line instead.
+///
+/// # Returns
+///   The parsed command line options, or a `XorError` instance on error.
 pub fn parse_parameters(
     doc: &str,
     version: &str,
@@ -86,5 +138,4 @@ pub fn parse_parameters(
         }),
         Err(e) => Err(XorError::ArgError { msg: e.to_string() }),
     }
-    // .unwrap_or_else(|e| e.exit());
 }

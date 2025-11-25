@@ -3,6 +3,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
+//! Core logic for xortool-xor
 use std::{
     env, fs, io,
     io::{Read as _, Write as _, stdout},
@@ -15,6 +16,8 @@ use unicode_escape::decode;
 use getopt::Opt;
 
 use crate::VERSION;
+
+/// Documentation for the tool
 static DOC: LazyLock<String> = LazyLock::new(|| {
     format!(
         "
@@ -35,6 +38,14 @@ example: xor -s lol -h 414243 -f /etc/passwd
     )
 });
 
+/// Main function for xortool-xor
+///
+/// # Arguments
+///   * `args`: Optional vector of the command line arguments to parse
+///     If not provided, arguments are read from stdin instead.
+///
+/// # Panics
+///   Will panic if an error occurs when parsing the command line arguments.
 pub fn main(args: Option<Vec<String>>) {
     let mut cycle = true;
     let mut newline = true;
@@ -60,9 +71,9 @@ pub fn main(args: Option<Vec<String>>) {
     // start with a double dash, then we parse through like in the python code.
     // It also means we don't currently error out for unknown arrg types
     loop {
-        match opts.next().transpose().unwrap() {
+        match opts.next() {
             None => break,
-            Some(opt) => match opt {
+            Some(opt) => match opt.unwrap() {
                 Opt(key, Some(arg)) => collected_args.push((key.to_string(), arg)),
                 Opt(key, None) => collected_args.push((key.to_string(), String::new())),
             },
@@ -115,6 +126,15 @@ pub fn main(args: Option<Vec<String>>) {
     stdout().flush().unwrap();
 }
 
+/// Compute xor-encoded value of all of the data
+///
+/// # Arguments
+///   * `args`: 2D Vector of all of the data to xor encode
+///   * `cycle`: Whether to use the longest of the data components for
+///     iteration length (true), or the length of each individual component (false)
+///
+/// # Returns
+///  xor-encoding of all of the data
 fn xor(mut args: Vec<Vec<u8>>, cycle: bool) -> Vec<u8> {
     args.sort_by_key(Vec::len);
     // Pop First then reverse is the same as popping first item after reversing
@@ -131,10 +151,24 @@ fn xor(mut args: Vec<Vec<u8>>, cycle: bool) -> Vec<u8> {
     res
 }
 
+/// Convert a string into a vector of bytes, decoding escape sequences
+///
+/// # Arguments
+///   * `s`: The string to convert
+///
+/// # Returns
+///   Vector of the bytes of the string.
 fn from_str(s: &str) -> Vec<u8> {
     decode(s).unwrap().bytes().collect()
 }
 
+/// Read from a file into a vector of bytes
+///
+/// # Arguments
+///   * `file`: The file to read from. If "-", will read from stdin instead
+///
+/// # Returns
+///   Vector of the bytes that were read in.
 fn from_file(s: &str) -> Vec<u8> {
     if s == "-" {
         let mut buf = Vec::new();
@@ -144,6 +178,25 @@ fn from_file(s: &str) -> Vec<u8> {
     fs::read(s).unwrap()
 }
 
+/// Read in data specified by command line arguments
+///
+/// How the data is read varies depending on which argument was provided
+///   * `s`: The data is read as a string with escapes parsed
+///   * `r`: The data is read as a string without escapes parsed
+///   * `h`: The data is read as a string of hexadecimal values
+///   * `f`: The data is the filepath to a file to read from (or `-` for reading
+///     from stdin)
+///
+/// # Arguments
+///   * `opt`: The provided command line argument
+///   * `s`: The value for the command line argument
+///
+/// # Returns
+///   The data as specified by the command line argument, as a vector
+///   of bytes.
+///
+/// # Panics
+///   Will error and exit if an unsupported command line argument was provided.
 fn arg_data(opt: &str, s: &str) -> Vec<u8> {
     let line_end = if env::consts::OS == "windows" {
         "\r\n"
