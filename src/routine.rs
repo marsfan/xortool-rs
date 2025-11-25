@@ -98,12 +98,10 @@ pub fn decode_from_hex(text: &[u8]) -> Vec<u8> {
 ///   Decrypted bytes
 pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {
     let val_mod = key.len();
-    let mut results = Vec::new();
-    for (index, char) in text.iter().enumerate() {
-        let tmp = key[index % val_mod] ^ char;
-        results.push(tmp);
-    }
-    results
+    text.into_iter()
+        .enumerate()
+        .map(|(idx, chr)| key[idx % val_mod] ^ chr)
+        .collect()
 }
 
 /// Exit the program and display the given error message

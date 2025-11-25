@@ -306,12 +306,7 @@ fn print_fitnesses(fitnesses: &[(i32, f64)]) {
 /// # Returns
 ///   Sum of all of the fitnesses
 fn calc_fitness_sum(fitnesses: &[(i32, f64)]) -> f64 {
-    // FIXME: Probably a better way to do this
-    let mut sum = 0.0;
-    for &(_, val) in fitnesses {
-        sum += val;
-    }
-    sum
+    fitnesses.iter().map(|v| v.1).sum()
 }
 
 /// Count number of equal characters at all offsets up to `key_length` and sum
