@@ -63,7 +63,7 @@ pub fn get_charset(charset: &str) -> Result<String, XorError> {
         if CHARSETS.contains_key(c.to_string().as_str()) {
             write!(chars, "{}", CHARSETS.get(c.to_string().as_str()).unwrap()).unwrap();
         } else {
-            return Err(XorError::CharsetError { charset: c });
+            return Err(XorError::Charset { charset: c });
         }
     }
     Ok(chars)
@@ -100,9 +100,6 @@ mod tests {
 
     #[test]
     fn test_invalid_charset() {
-        assert_eq!(
-            get_charset("aZ"),
-            Err(XorError::CharsetError { charset: 'Z' })
-        )
+        assert_eq!(get_charset("aZ"), Err(XorError::Charset { charset: 'Z' }))
     }
 }

@@ -38,7 +38,7 @@ pub fn mkdir(dirname: &str) -> Result<(), XorError> {
     } else {
         match fs::create_dir(dirname) {
             Ok(()) => Ok(()),
-            Err(e) => Err(XorError::MkdirError { msg: e.to_string() }),
+            Err(e) => Err(XorError::Mkdir { msg: e.to_string() }),
         }
     }
 }
@@ -143,7 +143,7 @@ mod tests {
         match result {
             Ok(_) => assert!(false),
             Err(e) => match e {
-                XorError::MkdirError { msg: _ } => assert!(true),
+                XorError::Mkdir { msg: _ } => assert!(true),
                 _ => assert!(false),
             },
         }

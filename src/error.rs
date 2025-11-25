@@ -10,32 +10,32 @@ use std::{env, error::Error, fmt};
 #[derive(Debug, PartialEq, Eq)]
 pub enum XorError {
     /// An error occurred during analysis of the data
-    AnalysisError {
+    Analysis {
         /// Message with further details about the error.
         msg: String,
     },
     /// An error occurred while parsing arguments
-    ArgError {
+    Arg {
         /// Message with further details about the error
         msg: String,
     },
     /// Incorrect short form for a charset
-    CharsetError {
+    Charset {
         /// The invalid short form supplied.
         charset: char,
     },
     /// Error occurred with data input/output
-    IOError {
+    IO {
         /// Message with further details about the error
         msg: String,
     },
     /// An error occurred when trying to create a directory
-    MkdirError {
+    Mkdir {
         /// Message with further details about the error
         msg: String,
     },
     /// An error occurred decoding a string to bytes
-    UnicodeDecodeError {
+    UnicodeDecode {
         /// Message with further details about the error
         msg: String,
     },
@@ -44,15 +44,15 @@ pub enum XorError {
 impl fmt::Display for XorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (type_str, details) = match self {
-            Self::AnalysisError { msg } => ("Analysis error", msg.clone()),
-            Self::ArgError { msg } => ("Bad argument", msg.clone()),
-            Self::CharsetError { charset } => (
+            Self::Analysis { msg } => ("Analysis error", msg.clone()),
+            Self::Arg { msg } => ("Bad argument", msg.clone()),
+            Self::Charset { charset } => (
                 "Bad charset",
                 format!(" ('Bad character set: ', '{charset}') "),
             ),
-            Self::IOError { msg } => ("Can't load file", msg.clone()),
-            Self::MkdirError { msg } => ("Can't create directory", msg.clone()),
-            Self::UnicodeDecodeError { msg } => ("Input is not hex", msg.clone()),
+            Self::IO { msg } => ("Can't load file", msg.clone()),
+            Self::Mkdir { msg } => ("Can't create directory", msg.clone()),
+            Self::UnicodeDecode { msg } => ("Input is not hex", msg.clone()),
         };
         if env::consts::OS == "windows" {
             write!(f, "[ERROR] {type_str}:\r\n\t{details}")
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_fmt_analysis_error() {
-        let err = XorError::AnalysisError {
+        let err = XorError::Analysis {
             msg: String::from("ABCD"),
         };
 
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_fmt_arg_error() {
-        let err = XorError::ArgError {
+        let err = XorError::Arg {
             msg: String::from("ABCD"),
         };
 
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_fmt_charset_error() {
-        let err = XorError::CharsetError { charset: 'Q' };
+        let err = XorError::Charset { charset: 'Q' };
 
         if env::consts::OS == "windows" {
             assert_eq!(
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn test_ioerror() {
-        let err = XorError::IOError {
+        let err = XorError::IO {
             msg: String::from("ABCD"),
         };
 
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_mkdir_error() {
-        let err = XorError::MkdirError {
+        let err = XorError::Mkdir {
             msg: String::from("ABCD"),
         };
 
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_unicode_decode_error() {
-        let err = XorError::UnicodeDecodeError {
+        let err = XorError::UnicodeDecode {
             msg: String::from("ABCD"),
         };
 

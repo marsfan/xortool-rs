@@ -183,7 +183,7 @@ fn get_ciphertext(param: &Parameters) -> Vec<u8> {
 fn guess_key_length(text: &[u8], param: &Parameters) -> Result<i32, XorError> {
     let mut fitnesses = calculate_fitnesses(text, param);
     if fitnesses.is_empty() {
-        return Err(XorError::AnalysisError {
+        return Err(XorError::Analysis {
             msg: String::from("No candidates for key length found! Too small file?"),
         });
     }

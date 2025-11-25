@@ -136,6 +136,6 @@ pub fn parse_parameters(
             known_plain: p.get_str("--known-plaintext").bytes().collect(),
             threshold: parse_optional_int(&p, "--threshold"),
         }),
-        Err(e) => Err(XorError::ArgError { msg: e.to_string() }),
+        Err(e) => Err(XorError::Arg { msg: e.to_string() }),
     }
 }
