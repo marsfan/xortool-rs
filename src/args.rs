@@ -4,142 +4,175 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 //! Command line argument parsing utilities.
-use docopt::{ArgvMap, Docopt};
-use std::env;
+use clap::Parser;
 
 use crate::{charset::get_charset, error::XorError};
 
-/// Structure holding parsed command line options
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "This structure holds CLI args, lots of bools are expected as they are for flags."
-)]
-#[derive(Default)]
+/// Parse `most_frequent_char` argument into a byte
+///
+/// # Arguments
+///   * `arg`: The argument to parse
+///
+/// # Returns
+///   * Argument converted to a byte
+///
+/// # Errors
+///   Returns an error of the supplied argument text is empty
+///   or if the supplied argument is not a single character, or a hex
+///   value (i.e. prefixed with `0x` or `\\x`)
+fn parse_most_frequent(mut arg: &str) -> Result<u8, XorError> {
+    if arg.len() == 1 {
+        return Ok(arg.bytes().collect::<Vec<u8>>()[0]);
+    }
+    if arg.starts_with("0x") {
+        arg = arg.strip_prefix("0x").unwrap();
+    }
+    if arg.starts_with("\\x") {
+        arg = arg.strip_prefix("\\x").unwrap();
+    }
+    if arg.is_empty() {
+        return Err(XorError::ArgParser {
+            msg: "Empty Char".to_owned(),
+        });
+    }
+    if arg.len() > 2 {
+        return Err(XorError::ArgParser {
+            msg: "Char can only be a char letter or hex".to_owned(),
+        });
+    }
+    Ok(u8::from_str_radix(arg, 16).unwrap())
+}
+
+/// Convert a string to a vector of bytes
+///
+/// # Arguments
+///   * `arg`: The value to convert
+///
+/// # Returns
+///   The input value, as a vector of bytes
+///
+/// # Errors
+///   Returns `XorError::ArgParser` if an empty string is supplied.
+fn str_to_bytes(arg: &str) -> Result<Vec<u8>, XorError> {
+    if arg.is_empty() {
+        Err(XorError::ArgParser {
+            msg: "Empty String".to_owned(),
+        })
+    } else {
+        Ok(arg.as_bytes().to_vec())
+    }
+}
+
+/// Structure holding the parsed command line arguments
+#[derive(Parser, Default)]
+#[command(version, about, long_about = None, about="A tool to do some xor analysis:\n- Guess the key length (based on count of equal chars)\n- Guess the key (based on knowledge of most frequent char)", after_help="
+
+Notes:
+Text character set:
+    * Pre-defined sets: printable, base32, base64
+    * Custom sets:
+    - a: lowercase chars
+    - A: uppercase chars
+    - 1: digits
+    - !: special chars
+    - *: printable chars
+
+Examples:
+xortool file.bin
+xortool -l 11 -c 20 file.bin
+xortool -x -c ' ' file.hex
+xortool -b -f -l 23 -t base64 message.enc
+xortool -r 80 -p \"flag{\" -c ' ' message.enc
+")]
 pub struct Parameters {
     /// Whether or not to brute force all possible most frequent characters
+    #[arg(short, long, help = "Brute force all possible most frequent chars")]
     pub brute_chars: bool,
 
     /// Whether or not to brute force all possible most frequent printable characters
+    #[arg(
+        short = 'o',
+        long,
+        help = "Same as -b but will only check printable chars"
+    )]
     pub brute_printable: bool,
 
     /// Name of the file to read in from
+    #[arg(default_value = "-")]
     pub filename: String,
 
-    /// Whether or not to filter outputs based on the charsett.
+    /// Whether or not to filter outputs based on the charset.
+    #[arg(short, long, help = "filter outputs based on the charset")]
     pub filter_output: bool,
 
     /// Whether or not the input is a hex-encoded string.
+    #[arg(short = 'x', long = "hex", help = "input is hex-encoded str")]
     pub input_is_hex: bool,
 
     /// Optional known length of the key
+    #[arg(
+        short = 'l',
+        long = "key-length",
+        value_name = "LEN",
+        help = "Length of the key"
+    )]
     pub known_key_length: Option<i32>,
 
     /// Maximum key length to probe.
+    #[arg(
+        short = 'm',
+        long = "max-keylen",
+        value_name = "MAXLEN",
+        help = "Maximum key length to probe [default: 65]",
+        default_value = "65"
+    )]
     pub max_key_length: Option<i32>,
 
     /// Known most frequent character in the plaintext
+    #[arg(
+        short = 'c',
+        long = "char",
+        value_name = "CHAR",
+        value_parser = parse_most_frequent,
+        help = "Most frequent char (one char or hex code)"
+    )]
     pub most_frequent_char: Option<u8>,
 
     /// Target text character set
-    pub text_charset: Vec<u8>,
+    #[arg(
+        short = 't',
+        long = "text-charset",
+        value_name = "CHARSET",
+        help = "Target text character set [default: printable]",
+        value_parser = get_charset,
+        default_value="printable"
+    )]
+    #[expect(
+        clippy::absolute_paths,
+        reason = "This needs to be fully qualified to work properly. See https://github.com/clap-rs/clap/issues/4481#issuecomment-1314475143"
+    )]
+    pub text_charset: std::vec::Vec<u8>,
 
     /// Known plaintext to use for decoding
-    pub known_plain: Vec<u8>,
+    #[arg(
+        short = 'p',
+        long = "known-plaintext",
+        value_name = "PLAIN",
+        value_parser = str_to_bytes,
+        help = "Use known plaintext for decoding"
+    )]
+    #[expect(
+        clippy::absolute_paths,
+        reason = "This needs to be fully qualified to work properly. See https://github.com/clap-rs/clap/issues/4481#issuecomment-1314475143"
+    )]
+    pub known_plain: Option<std::vec::Vec<u8>>,
 
     /// Threshold validity percentage (default: 95)
+    #[arg(
+        short = 'r',
+        long = "threshold",
+        value_name = "PERCENT",
+        help = "Threshold validity percentage [default: 95]"
+    )]
     pub threshold: Option<i32>,
-}
-
-/// Parse an argument into a u8 character.
-///
-/// # Arguments
-///   * `parsed`: The parsed arguments
-///   * `arg`: The argument to parse
-///
-/// # Returns
-///   The character converted to a `u8`, or `None` if the given argument
-///   was not provided.
-fn parse_char(parsed: &ArgvMap, arg: &str) -> Option<u8> {
-    let mut ch = parsed.get_str(arg);
-    if ch.is_empty() {
-        None
-    } else {
-        if ch.len() == 1 {
-            return Some(ch.bytes().collect::<Vec<u8>>()[0]);
-        }
-        if ch.starts_with("0x") {
-            ch = ch.strip_prefix("0x").unwrap();
-        }
-        if ch.starts_with("\\x") {
-            ch = ch.strip_prefix("\\x").unwrap();
-        }
-        assert!(!ch.is_empty(), "Empty Char");
-        assert!(ch.len() <= 2, "Char can be only a char letter or hex");
-        Some(u8::from_str_radix(ch, 16).unwrap())
-    }
-}
-
-/// Parse an optional argument to an integer.
-///
-/// # Arguments
-///   * `parsed`: The parsed arguments
-///   * `arg`: The argument to parse
-///
-/// # Returns
-///   The argument as an integer, or `None` if the given argument
-///   was not provided.
-fn parse_optional_int(parsed: &ArgvMap, arg: &str) -> Option<i32> {
-    let value = parsed.get_str(arg);
-    if value.is_empty() {
-        None
-    } else {
-        Some(value.parse().unwrap())
-    }
-}
-
-/// Parse parameters from the commandline using docopt
-///
-/// # Arguments
-///   * `doc`: The documentation to pass to docopt to use for parsing the
-///     arguments
-///   * `version`: The version number of the tool
-///   * `args`: The arguments to parse, or None to parse from the command
-///     line instead.
-///
-/// # Returns
-///   The parsed command line options, or a `XorError` instance on error.
-pub fn parse_parameters(
-    doc: &str,
-    version: &str,
-    args: Option<Vec<String>>,
-) -> Result<Parameters, XorError> {
-    let args = match args {
-        Some(a) => a,
-        None => env::args().collect(),
-    };
-    let p =
-        Docopt::new(doc).and_then(|dopt| dopt.version(Some(version.to_owned())).argv(args).parse());
-    match p {
-        Ok(p) => Ok(Parameters {
-            brute_chars: p.get_bool("--brute-chars"),
-            brute_printable: p.get_bool("--brute-printable"),
-
-            filename: if p.get_str("FILE").is_empty() {
-                "-".to_owned()
-            } else {
-                p.get_str("FILE").to_owned()
-            },
-            filter_output: p.get_bool("--filter-output"),
-            input_is_hex: p.get_bool("--hex"),
-            known_key_length: parse_optional_int(&p, "--key-length"),
-            max_key_length: parse_optional_int(&p, "--max-keylen"),
-            most_frequent_char: parse_char(&p, "--char"),
-            text_charset: get_charset(p.get_str("--text-charset"))?
-                .as_bytes()
-                .to_vec(),
-            known_plain: p.get_str("--known-plaintext").bytes().collect(),
-            threshold: parse_optional_int(&p, "--threshold"),
-        }),
-        Err(e) => Err(XorError::Arg { msg: e.to_string() }),
-    }
 }

@@ -48,14 +48,17 @@ pub static PREDEFINED_CHARSETS: LazyLock<HashMap<&'static str, &'static str>> =
 /// # Errors
 ///   Returns `XorError::CharsetError` if an invalid letter is used for
 ///   building a charset.
-pub fn get_charset(charset: &str) -> Result<String, XorError> {
+pub fn get_charset(charset: &str) -> Result<Vec<u8>, XorError> {
     let charset = if charset.is_empty() {
         "printable"
     } else {
         charset
     };
     if PREDEFINED_CHARSETS.contains_key(charset) {
-        return Ok((*PREDEFINED_CHARSETS.get(charset).unwrap()).to_owned());
+        return Ok((*PREDEFINED_CHARSETS.get(charset).unwrap())
+            .to_owned()
+            .as_bytes()
+            .to_vec());
     }
 
     let mut chars = String::new();
@@ -66,7 +69,7 @@ pub fn get_charset(charset: &str) -> Result<String, XorError> {
             return Err(XorError::Charset { charset: c });
         }
     }
-    Ok(chars)
+    Ok(chars.as_bytes().to_vec())
 }
 
 #[cfg(test)]
@@ -77,14 +80,20 @@ mod tests {
     fn test_empty_str() {
         assert_eq!(
             get_charset(""),
-            Ok(PREDEFINED_CHARSETS["printable"].to_string())
+            Ok(PREDEFINED_CHARSETS["printable"]
+                .to_string()
+                .as_bytes()
+                .to_vec())
         );
     }
 
     #[test]
     fn test_predefined_charsets() {
         for c in PREDEFINED_CHARSETS.keys() {
-            assert_eq!(get_charset(c), Ok(PREDEFINED_CHARSETS[c].to_string()))
+            assert_eq!(
+                get_charset(c),
+                Ok(PREDEFINED_CHARSETS[c].to_string().as_bytes().to_vec())
+            )
         }
     }
 
@@ -92,9 +101,11 @@ mod tests {
     fn test_building_charset() {
         assert_eq!(
             get_charset("aA"),
-            Ok(String::from(
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            ))
+            Ok(
+                String::from("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                    .as_bytes()
+                    .to_vec()
+            )
         );
     }
 

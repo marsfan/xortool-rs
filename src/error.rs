@@ -39,6 +39,12 @@ pub enum XorError {
         /// Message with further details about the error
         msg: String,
     },
+
+    /// An error occurred when parsing command line arguments.
+    ArgParser {
+        /// Message with further details about the errorr
+        msg: String,
+    },
 }
 
 impl fmt::Display for XorError {
@@ -53,6 +59,7 @@ impl fmt::Display for XorError {
             Self::IO { msg } => ("Can't load file", msg.clone()),
             Self::Mkdir { msg } => ("Can't create directory", msg.clone()),
             Self::UnicodeDecode { msg } => ("Input is not hex", msg.clone()),
+            Self::ArgParser { msg } => ("Unsupported Most Frequent Char", msg.clone()),
         };
         if env::consts::OS == "windows" {
             write!(f, "[ERROR] {type_str}:\r\n\t{details}")

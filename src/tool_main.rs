@@ -4,8 +4,9 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 //! Core logic for xortool
+use clap::Parser as _;
+
 use crate::{
-    VERSION,
     colors::{C_BEST_KEYLEN, C_BEST_PROB, C_FATAL, C_KEYLEN, C_PROB},
     error::XorError,
     routine::{dexor, mkdir},
@@ -19,62 +20,14 @@ use std::{
     io::Write as _,
     path::MAIN_SEPARATOR,
     process::exit,
-    sync::LazyLock,
 };
-
-/// Command line documentation for the tool
-static DOC: LazyLock<String> = LazyLock::new(|| {
-    format!("
-xortool {VERSION}\
-A tool to do some xor analysis:
-- guess the key length (based on count of equal chars)
-- guess the key (base on knowledge of most frequent char)
-
-Usage:
-xortool [-x] [-m MAXLEN] [-f] [-t CHARSET] [FILE]
-xortool [-x] [-l LEN] [-c CHAR | -b | -o] [-f] [-t CHARSET] [-p PLAIN] [-r PERCENT] [FILE]
-xortool [-x] [-m MAXLEN| -l LEN] [-c CHAR | -b | -o] [-f] [-t CHARSET] [-p PLAIN] [-r PERCENT] [FILE]
-xortool [-h | --help]
-xortool --version
-
-Options:
--x --hex                           input is hex-encoded str
--l LEN, --key-length=LEN           length of the key
--m MAXLEN, --max-keylen=MAXLEN   maximum key length to probe [default: 65]
--c CHAR, --char=CHAR               most frequent char (one char or hex code)
--b --brute-chars                   brute force all possible most frequent chars
--o --brute-printable               same as -b but will only check printable chars
--f --filter-output                 filter outputs based on the charset
--t CHARSET --text-charset=CHARSET  target text character set [default: printable]
--p PLAIN --known-plaintext=PLAIN   use known plaintext for decoding
--r PERCENT, --threshold=PERCENT    threshold validity percentage [default: 95]
--h --help                          show this help
-
-Notes:
-Text character set:
-    * Pre-defined sets: printable, base32, base64
-    * Custom sets:
-    - a: lowercase chars
-    - A: uppercase chars
-    - 1: digits
-    - !: special chars
-    - *: printable chars
-
-Examples:
-xortool file.bin
-xortool -l 11 -c 20 file.bin
-xortool -x -c ' ' file.hex
-xortool -b -f -l 23 -t base64 message.enc
-xortool -r 80 -p \"flag{{\" -c ' ' message.enc
-")
-});
 
 // TODO: Support changing with CLI arg
 /// Directory to put decrypted data in
 const DIRNAME: &str = "xortool_out";
 
 use crate::{
-    args::{Parameters, parse_parameters},
+    args::Parameters,
     charset::PREDEFINED_CHARSETS,
     colors::{C_COUNT, C_DIV, C_KEY, C_RESET, C_WARN},
     routine::{decode_from_hex, die, load_file, rmdir},
@@ -110,7 +63,10 @@ pub fn main(args: Option<Vec<String>>) {
 /// # Errors
 ///   Returns any errors that occurred during tool execution
 fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
-    let mut param = parse_parameters(&DOC, VERSION, args)?;
+    let mut param = match args {
+        Some(a) => Parameters::parse_from(a),
+        None => Parameters::parse(),
+    };
     let ciphertext = get_ciphertext(&param);
     if param.known_key_length.is_none() {
         param.known_key_length = Some(guess_key_length(&ciphertext, &param)?);
@@ -659,11 +615,11 @@ fn produce_plaintext(
 
         let dexored = dexor(ciphertext, key);
         // ignore saving file when known plain is provided and output doesn't contain it
-        if !param.known_plain.is_empty()
+        if param.known_plain.is_some()
             && !dexored
-                .windows(param.known_plain.len())
+                .windows(param.known_plain.clone().unwrap().len())
                 .collect::<Vec<&[u8]>>()
-                .contains(&param.known_plain.as_slice())
+                .contains(&param.known_plain.clone().unwrap().as_slice())
         {
             continue;
         }
@@ -702,11 +658,11 @@ fn produce_plaintext(
         "Found {}{count_valid}{} plaintexts with {}{threshold_valid}{}%+ valid characters",
         *C_COUNT, *C_RESET, *C_COUNT, *C_RESET
     );
-    if !param.known_plain.is_empty() {
+    if param.known_plain.is_some() {
         write!(
             msg,
             " which contained '{}'",
-            String::from_utf8(param.known_plain.clone()).unwrap()
+            String::from_utf8(param.known_plain.clone().unwrap()).unwrap()
         )
         .unwrap();
     }
