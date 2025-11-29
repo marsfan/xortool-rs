@@ -53,7 +53,7 @@ impl fmt::Display for XorError {
             Self::IO { msg } => ("Can't load file", msg.clone()),
             Self::Mkdir { msg } => ("Can't create directory", msg.clone()),
             Self::UnicodeDecode { msg } => ("Input is not hex", msg.clone()),
-            Self::ArgParser { msg } => ("Bad Argument", msg.clone()),
+            Self::ArgParser { msg } => ("Bad argument", msg.clone()),
         };
         if env::consts::OS == "windows" {
             write!(f, "[ERROR] {type_str}:\r\n\t{details}")
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_fmt_arg_error() {
-        let err = XorError::Arg {
+        let err = XorError::ArgParser {
             msg: String::from("ABCD"),
         };
 
