@@ -98,7 +98,7 @@ pub fn decode_from_hex(text: &[u8]) -> Vec<u8> {
 ///   Decrypted bytes
 pub fn dexor(text: &[u8], key: &[u8]) -> Vec<u8> {
     let val_mod = key.len();
-    text.into_iter()
+    text.iter()
         .enumerate()
         .map(|(idx, chr)| key[idx % val_mod] ^ chr)
         .collect()
