@@ -69,7 +69,10 @@ fn str_to_bytes(arg: &str) -> Result<Vec<u8>, XorError> {
     reason = "This structure holds CLI args, lots of bools are expected as they are for flags."
 )]
 #[derive(Parser, Default)]
-#[command(version, long_about = None, about="A tool to do some xor analysis:\n- Guess the key length (based on count of equal chars)\n- Guess the key (based on knowledge of most frequent char)", after_help="
+#[command(
+    version,
+    about = "A tool to do some xor analysis:\n- Guess the key length (based on count of equal chars)\n- Guess the key (based on knowledge of most frequent char)",
+    after_help = "
 
 Notes:
 Text character set:
@@ -87,7 +90,8 @@ xortool -l 11 -c 20 file.bin
 xortool -x -c ' ' file.hex
 xortool -b -f -l 23 -t base64 message.enc
 xortool -r 80 -p \"flag{\" -c ' ' message.enc
-")]
+"
+)]
 pub struct Parameters {
     /// Whether or not to brute force all possible most frequent characters
     #[arg(short, long, help = "Brute force all possible most frequent chars")]
