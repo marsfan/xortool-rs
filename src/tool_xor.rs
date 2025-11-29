@@ -8,35 +8,64 @@ use std::{
     env, fs, io,
     io::{Read as _, Write as _, stdout},
     process::exit,
-    sync::LazyLock,
     vec::Vec,
 };
+
+use clap::{ArgAction, CommandFactory as _, Parser};
 use unicode_escape::decode;
 
-use getopt::Opt;
+use crate::error::XorError;
 
-use crate::VERSION;
+/// Structure holding the parsed command line arguments
+#[derive(Parser, Debug)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This structure holds CLI args, lots of bools are expected as they are for flags."
+)]
+#[command(
+    version,
+    about,
+    about = "xor strings",
+    after_help = "example: xor -s lol -h 414243 -f /etc/passwd",
+    disable_help_flag = true
+)]
+pub struct Parameters {
+    /// String with \\xAF escapes
+    #[arg(short='s', value_parser=from_str)]
+    pub string: Vec<Vec<u8>>,
 
-/// Documentation for the tool
-static DOC: LazyLock<String> = LazyLock::new(|| {
-    format!(
-        "
-xortool-xor {VERSION}
-xor strings
-options:
-    -s  -  string with \\xAF escapes
-    -r  -  raw string
-    -h  -  hex-encoded string (non-letterdigit chars are stripped)
-    -f  -  read data from file (- for stdin)
+    /// Raw strings
+    #[arg( short='r', value_parser=from_raw_str)]
+    pub raw_string: Vec<Vec<u8>>,
 
-    --newline -  newline at the end (default)
-    -n / --no-newline -  no newline at the end
-    --cycle - do not pad (default)
-    --no-cycle / --nc  -  pad smaller strings with null bytes
-example: xor -s lol -h 414243 -f /etc/passwd
-"
-    )
-});
+    /// Hex-encoded string (non-letterdigit chars are stripped)
+    #[arg(short='h', value_parser=from_hex_str)]
+    pub hex_string: Vec<Vec<u8>>,
+
+    /// Read dta from file (- for stdin)
+    #[arg(short='f', value_parser=from_file)]
+    pub file: Vec<Vec<u8>>,
+
+    /// Newline at the end (default)
+    #[arg(long="newline", action=ArgAction::SetTrue, overrides_with="no_newline")]
+    pub newline: bool,
+
+    /// No newline at the end
+    #[arg(short = 'n', long = "no-newline", action=ArgAction::SetFalse, overrides_with="newline")]
+    pub no_newline: bool,
+
+    /// Do not pad (default)
+    #[arg(long, action=ArgAction::SetTrue, overrides_with="no_cycle")]
+    pub cycle: bool,
+
+    /// Pad smaller strings with null bytes
+    #[arg(long="no-cycle", visible_alias ="nc", action=ArgAction::SetFalse, overrides_with="cycle")]
+    pub no_cycle: bool,
+
+    /// Print help
+    #[clap(long, action = clap::ArgAction::HelpLong)]
+    pub help: Option<bool>,
+}
 
 /// Main function for xortool-xor
 ///
@@ -47,60 +76,19 @@ example: xor -s lol -h 414243 -f /etc/passwd
 /// # Panics
 ///   Will panic if an error occurs when parsing the command line arguments.
 pub fn main(args: Option<Vec<String>>) {
-    let mut cycle = true;
-    let mut newline = true;
-
-    // Use input arg if provided, otherwise read from stdin
-    let stdin_args = match args {
-        Some(a) => a,
-        None => env::args().collect(),
+    let param = match args {
+        Some(a) => Parameters::parse_from(a),
+        None => Parameters::parse(),
     };
 
-    let no_doubles: Vec<String> = stdin_args
-        .clone()
-        .into_iter()
-        .filter(|v| !v.starts_with("--"))
-        .collect();
-    let mut opts = getopt::Parser::new(&no_doubles, "ns:r:h:f:");
+    let cycle = param.cycle || param.no_cycle;
+    let newline = param.newline || param.no_newline;
+
     let mut datas = Vec::new();
-    let mut collected_args: Vec<(String, String)> = Vec::new();
-
-    // This process is a bit different from tool_xor.py, due to not really
-    // having getopt in rust that can handle long form args.
-    // So we use a getopt crate, and then gather all the other args that
-    // start with a double dash, then we parse through like in the python code.
-    // It also means we don't currently error out for unknown arrg types
-    loop {
-        match opts.next() {
-            None => break,
-            Some(opt) => match opt.unwrap() {
-                Opt(key, Some(arg)) => collected_args.push((key.to_string(), arg)),
-                Opt(key, None) => collected_args.push((key.to_string(), String::new())),
-            },
-        }
-    }
-    // Collect long args. Luckily there's no long args that take parameters, so
-    // this is really easy.
-    for arg in &stdin_args {
-        if arg.starts_with("--") {
-            collected_args.push((arg.clone(), String::new()));
-        }
-    }
-
-    // Now we are actually back on course.
-    for (c, val) in collected_args {
-        if c == "--cycle" {
-            cycle = true;
-        } else if ["--no-cycle", "--nc"].contains(&c.as_str()) {
-            cycle = false;
-        } else if c == "--newline" {
-            newline = true;
-        } else if ["n", "--no-newline"].contains(&c.as_str()) {
-            newline = false;
-        } else {
-            datas.push(arg_data(&c, &val));
-        }
-    }
+    datas.extend_from_slice(&param.string);
+    datas.extend_from_slice(&param.raw_string);
+    datas.extend_from_slice(&param.hex_string);
+    datas.extend_from_slice(&param.file);
 
     if datas.is_empty() {
         let line_end = if env::consts::OS == "windows" {
@@ -108,13 +96,8 @@ pub fn main(args: Option<Vec<String>>) {
         } else {
             "\n"
         };
-        let msg = if env::consts::OS == "windows" {
-            DOC.replace('\n', "\r\n")
-        } else {
-            DOC.to_string()
-        };
-        eprint!("error: no data given{line_end}");
-        eprint!("{msg}{line_end}");
+        eprint!("error: no data given{line_end}{line_end}");
+        eprint!("{}{line_end}", Parameters::command().render_help());
         exit(1)
     }
 
@@ -158,8 +141,63 @@ fn xor(mut args: Vec<Vec<u8>>, cycle: bool) -> Vec<u8> {
 ///
 /// # Returns
 ///   Vector of the bytes of the string.
-fn from_str(s: &str) -> Vec<u8> {
-    decode(s).unwrap().bytes().collect()
+///
+/// # Errors
+///   Returns `XorError::ArgParser` if the supplied string is empty
+fn from_str(s: &str) -> Result<Vec<u8>, XorError> {
+    if s.is_empty() {
+        Err(XorError::ArgParser {
+            msg: "Empty String".to_owned(),
+        })
+    } else {
+        Ok(decode(s).unwrap().bytes().collect())
+    }
+}
+
+/// Parse a raw string to bytes
+///
+/// # Arguments
+///   * `arg`: The string to parse
+///
+/// # Returns
+///   Vector of bytes from the parsed string
+///
+/// # Errors
+///   Returns `XorError::ArgParser` if the supplied string is empty
+fn from_raw_str(arg: &str) -> Result<Vec<u8>, XorError> {
+    if arg.is_empty() {
+        Err(XorError::ArgParser {
+            msg: "Empty String".to_owned(),
+        })
+    } else {
+        Ok(arg.as_bytes().to_vec())
+    }
+}
+
+/// Parse from a string of hex characters to bytes
+///
+/// # Arguments
+///   * `arg`: The string to parse
+///
+/// # Returns
+///   Hex characters converted to bytes
+///
+/// # Errors
+///   Returns `XorError::ArgParser` if the supplied string is empty
+fn from_hex_str(arg: &str) -> Result<Vec<u8>, XorError> {
+    if arg.is_empty() {
+        Err(XorError::ArgParser {
+            msg: "Empty String".to_owned(),
+        })
+    } else {
+        Ok(arg
+            .replace(' ', "")
+            .chars()
+            .collect::<Vec<char>>()
+            .chunks(2)
+            .map(|c| u8::from_str_radix(&c.iter().collect::<String>(), 16).unwrap())
+            .collect())
+    }
 }
 
 /// Read from a file into a vector of bytes
@@ -169,63 +207,21 @@ fn from_str(s: &str) -> Vec<u8> {
 ///
 /// # Returns
 ///   Vector of the bytes that were read in.
-fn from_file(s: &str) -> Vec<u8> {
-    if s == "-" {
-        let mut buf = Vec::new();
-        io::stdin().read_to_end(&mut buf).unwrap();
-        return buf;
-    }
-    fs::read(s).unwrap()
-}
-
-/// Read in data specified by command line arguments
 ///
-/// How the data is read varies depending on which argument was provided
-///   * `s`: The data is read as a string with escapes parsed
-///   * `r`: The data is read as a string without escapes parsed
-///   * `h`: The data is read as a string of hexadecimal values
-///   * `f`: The data is the filepath to a file to read from (or `-` for reading
-///     from stdin)
-///
-/// # Arguments
-///   * `opt`: The provided command line argument
-///   * `s`: The value for the command line argument
-///
-/// # Returns
-///   The data as specified by the command line argument, as a vector
-///   of bytes.
-///
-/// # Panics
-///   Will error and exit if an unsupported command line argument was provided.
-fn arg_data(opt: &str, s: &str) -> Vec<u8> {
-    let line_end = if env::consts::OS == "windows" {
-        "\r\n"
+/// # Errors
+///   Returns `XorError::ArgParser` if the supplied string is empty
+fn from_file(s: &str) -> Result<Vec<u8>, XorError> {
+    if s.is_empty() {
+        Err(XorError::ArgParser {
+            msg: "Empty String".to_owned(),
+        })
     } else {
-        "\n"
-    };
-    match opt {
-        "s" => from_str(s),
-        "r" => s.bytes().collect(),
-        //FIXME: There has to be a way to make this a bit nicer looking
-        "h" => s
-            .replace(' ', "")
-            .chars()
-            .collect::<Vec<char>>()
-            .chunks(2)
-            .map(|c| c.iter().collect::<String>())
-            .map(|c| u8::from_str_radix(&c, 16).unwrap())
-            .collect(),
-        "f" => from_file(s),
-        _ => {
-            eprint!("unknown option -{opt}{line_end}");
-            let msg = if env::consts::OS == "windows" {
-                DOC.replace('\n', "\r\n")
-            } else {
-                DOC.to_string()
-            };
-            eprint!("{msg}{line_end}");
-            exit(1)
+        if s == "-" {
+            let mut buf = Vec::new();
+            io::stdin().read_to_end(&mut buf).unwrap();
+            return Ok(buf);
         }
+        Ok(fs::read(s).unwrap())
     }
 }
 
@@ -235,42 +231,33 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        assert_eq!(from_str("Hello \\tWorld!"), "Hello \tWorld!".as_bytes())
+        assert_eq!(
+            from_str("Hello \\tWorld!"),
+            Ok("Hello \tWorld!".as_bytes().to_vec())
+        )
     }
 
-    mod test_arg_data {
-        use super::*;
+    #[test]
+    fn test_from_raw_string() {
+        assert_eq!(
+            from_raw_str("Hello \\tWorld!"),
+            Ok("Hello \\tWorld!".as_bytes().to_vec())
+        );
+    }
 
-        #[test]
-        fn test_s() {
-            assert_eq!(
-                arg_data("s", "Hello \\tWorld!"),
-                "Hello \tWorld!".as_bytes()
-            );
-        }
+    #[test]
+    fn test_from_hex_str() {
+        assert_eq!(
+            from_hex_str("48 65 6C 6C 6F 20 57 6F 72 6C 64"),
+            Ok("Hello World".as_bytes().to_vec())
+        );
+    }
 
-        #[test]
-        fn test_r() {
-            assert_eq!(
-                arg_data("r", "Hello \\tWorld!"),
-                "Hello \\tWorld!".as_bytes()
-            );
-        }
-
-        #[test]
-        fn test_h() {
-            assert_eq!(
-                arg_data("h", "48 65 6C 6C 6F 20 57 6F 72 6C 64"),
-                "Hello World".as_bytes()
-            );
-        }
-
-        #[test]
-        fn test_f() {
-            assert_eq!(
-                arg_data("f", "tests/small_file.txt"),
-                "Hello World!".as_bytes()
-            );
-        }
+    #[test]
+    fn test_from_file() {
+        assert_eq!(
+            from_file("tests/small_file.txt"),
+            Ok("Hello World!".as_bytes().to_vec())
+        );
     }
 }

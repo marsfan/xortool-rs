@@ -12,7 +12,3 @@ pub mod libcolors;
 mod routine;
 pub mod tool_main;
 pub mod tool_xor;
-
-// https://stackoverflow.com/a/27841363
-/// The tool version (read from cargo metdata at build time)
-const VERSION: &str = env!("CARGO_PKG_VERSION");

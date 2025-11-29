@@ -99,12 +99,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
-name = "getopt"
-version = "1.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66eb69f29cb9773ca399122b247020f929dde18de809a27b0250be02bbf9fa5e"
-
-[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -195,6 +189,5 @@ name = "xortool-rs"
 version = "1.0.2"
 dependencies = [
  "clap",
- "getopt",
  "unicode_escape",
 ]
