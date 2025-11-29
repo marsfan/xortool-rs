@@ -14,11 +14,6 @@ pub enum XorError {
         /// Message with further details about the error.
         msg: String,
     },
-    /// An error occurred while parsing arguments
-    Arg {
-        /// Message with further details about the error
-        msg: String,
-    },
     /// Incorrect short form for a charset
     Charset {
         /// The invalid short form supplied.
@@ -51,7 +46,6 @@ impl fmt::Display for XorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (type_str, details) = match self {
             Self::Analysis { msg } => ("Analysis error", msg.clone()),
-            Self::Arg { msg } => ("Bad argument", msg.clone()),
             Self::Charset { charset } => (
                 "Bad charset",
                 format!(" ('Bad character set: ', '{charset}') "),
@@ -59,7 +53,7 @@ impl fmt::Display for XorError {
             Self::IO { msg } => ("Can't load file", msg.clone()),
             Self::Mkdir { msg } => ("Can't create directory", msg.clone()),
             Self::UnicodeDecode { msg } => ("Input is not hex", msg.clone()),
-            Self::ArgParser { msg } => ("Unsupported Most Frequent Char", msg.clone()),
+            Self::ArgParser { msg } => ("Bad Argument", msg.clone()),
         };
         if env::consts::OS == "windows" {
             write!(f, "[ERROR] {type_str}:\r\n\t{details}")
