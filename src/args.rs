@@ -69,7 +69,7 @@ fn str_to_bytes(arg: &str) -> Result<Vec<u8>, XorError> {
     reason = "This structure holds CLI args, lots of bools are expected as they are for flags."
 )]
 #[derive(Parser, Default)]
-#[command(version, about, long_about = None, about="A tool to do some xor analysis:\n- Guess the key length (based on count of equal chars)\n- Guess the key (based on knowledge of most frequent char)", after_help="
+#[command(version, long_about = None, about="A tool to do some xor analysis:\n- Guess the key length (based on count of equal chars)\n- Guess the key (based on knowledge of most frequent char)", after_help="
 
 Notes:
 Text character set:
