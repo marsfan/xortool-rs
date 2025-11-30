@@ -64,6 +64,10 @@ impl fmt::Display for XorError {
 }
 impl Error for XorError {}
 
+#[expect(
+    clippy::absolute_paths,
+    reason = "Since we already use a different error, we use absolute path here to disambiguate them."
+)]
 impl From<clap::error::Error> for XorError {
     fn from(value: clap::error::Error) -> Self {
         if let Some(v) = value.source() {
