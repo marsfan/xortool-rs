@@ -442,10 +442,6 @@ def test_xortool_xor_4() -> None:
     assert cmdout.stdout == b"012345"
 
 
-# FIXME: Need to do the last bit of testing in the original test.sh
-# comes after the xortool_xor tests, and combines the two
-
-
 def test_combo(tmp_path: Path) -> None:
     """Test a combination of using both xortool and xortool-xor.
 
