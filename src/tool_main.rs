@@ -11,6 +11,7 @@ use crate::{
     error::XorError,
     routine::{dexor, mkdir},
 };
+
 use std::{
     ascii::escape_default,
     collections::{HashMap, hash_map::Entry},
@@ -63,10 +64,14 @@ pub fn main(args: Option<Vec<String>>) {
 /// # Errors
 ///   Returns any errors that occurred during tool execution
 fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
+    // FIXME: Move back to using parse() so we get clap's native error handling
+    // This will require bumping to version 2.0, since it will lead to us not
+    // matching the original source.
     let mut param = match args {
-        Some(a) => Parameters::parse_from(a),
-        None => Parameters::parse(),
-    };
+        Some(a) => Parameters::try_parse_from(a),
+        None => Parameters::try_parse(),
+    }?;
+
     let ciphertext = get_ciphertext(&param);
     if param.known_key_length.is_none() {
         param.known_key_length = Some(guess_key_length(&ciphertext, &param)?);

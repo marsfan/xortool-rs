@@ -7,7 +7,7 @@
 use std::{env, error::Error, fmt};
 
 /// Enumeration of errors the tool may experience.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum XorError {
     /// An error occurred during analysis of the data
     Analysis {
@@ -63,6 +63,24 @@ impl fmt::Display for XorError {
     }
 }
 impl Error for XorError {}
+
+impl From<clap::error::Error> for XorError {
+    fn from(value: clap::error::Error) -> Self {
+        if let Some(v) = value.source() {
+            if let Some(downcast) = v.downcast_ref::<XorError>() {
+                downcast.clone()
+            } else {
+                XorError::ArgParser {
+                    msg: value.render().to_string(),
+                }
+            }
+        } else {
+            XorError::ArgParser {
+                msg: value.render().to_string(),
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
