@@ -150,7 +150,10 @@ fn from_str(s: &str) -> Result<Vec<u8>, XorError> {
             msg: "Empty String".to_owned(),
         })
     } else {
-        Ok(decode(s).unwrap().bytes().collect())
+        match decode(s) {
+            Ok(v) => Ok(v.bytes().collect()),
+            Err(e) => Err(XorError::UnicodeDecode { msg: e.to_string() }),
+        }
     }
 }
 
