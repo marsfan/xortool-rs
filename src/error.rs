@@ -4,7 +4,7 @@
 * file, You can obtain one at https: //mozilla.org/MPL/2.0/.
 */
 //! Custom error type for the tool
-use std::{env, error::Error, fmt};
+use std::{env, error::Error, fmt, io};
 
 /// Enumeration of errors the tool may experience.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -82,6 +82,14 @@ impl From<clap::error::Error> for XorError {
             XorError::ArgParser {
                 msg: value.render().to_string(),
             }
+        }
+    }
+}
+
+impl From<io::Error> for XorError {
+    fn from(value: io::Error) -> Self {
+        XorError::IO {
+            msg: value.to_string(),
         }
     }
 }

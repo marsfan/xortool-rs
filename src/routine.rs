@@ -16,13 +16,13 @@ use crate::error::XorError;
 ///
 /// # Returns
 ///   Vector of the bytes read from the file, or standard input.
-pub fn load_file(filename: &str) -> Vec<u8> {
+pub fn load_file(filename: &str) -> Result<Vec<u8>, XorError> {
     if filename == "-" {
         let mut buf = Vec::new();
-        io::stdin().read_to_end(&mut buf).unwrap();
-        return buf;
+        io::stdin().read_to_end(&mut buf)?;
+        return Ok(buf);
     }
-    fs::read(filename).unwrap()
+    Ok(fs::read(filename)?)
 }
 
 /// Create directory with the given name
@@ -126,7 +126,10 @@ mod tests {
 
     #[test]
     fn test_load_file() {
-        assert_eq!(load_file("tests/small_file.txt"), "Hello World!".as_bytes());
+        assert_eq!(
+            load_file("tests/small_file.txt").unwrap(),
+            "Hello World!".as_bytes()
+        );
     }
 
     #[test]

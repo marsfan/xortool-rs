@@ -72,7 +72,7 @@ fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
         None => Parameters::try_parse(),
     }?;
 
-    let ciphertext = get_ciphertext(&param);
+    let ciphertext = get_ciphertext(&param)?;
     if param.known_key_length.is_none() {
         param.known_key_length = Some(guess_key_length(&ciphertext, &param)?);
     }
@@ -117,13 +117,13 @@ fn main_inner(args: Option<Vec<String>>) -> Result<(), XorError> {
 ///
 /// # Returns
 ///   The bytes of the encrypted data.
-fn get_ciphertext(param: &Parameters) -> Vec<u8> {
-    let ciphertext = load_file(&param.filename);
+fn get_ciphertext(param: &Parameters) -> Result<Vec<u8>, XorError> {
+    let ciphertext = load_file(&param.filename)?;
 
     if param.input_is_hex {
-        return decode_from_hex(&ciphertext);
+        return Ok(decode_from_hex(&ciphertext));
     }
-    ciphertext
+    Ok(ciphertext)
 }
 
 // -----------------------------------------------------------------------------
@@ -589,21 +589,15 @@ fn produce_plaintext(
         .write(true)
         .create(true)
         .truncate(true)
-        .open(format!("{DIRNAME}{MAIN_SEPARATOR}{fn_key_mapping}"))
-        .unwrap();
+        .open(format!("{DIRNAME}{MAIN_SEPARATOR}{fn_key_mapping}"))?;
     let mut perc_mapping = fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(format!("{DIRNAME}{MAIN_SEPARATOR}{fn_perc_mapping}"))
-        .unwrap();
+        .open(format!("{DIRNAME}{MAIN_SEPARATOR}{fn_perc_mapping}"))?;
 
-    key_mapping
-        .write_fmt(format_args!("file_name;key_repr{line_end}"))
-        .unwrap();
-    perc_mapping
-        .write_fmt(format_args!("file_name;char_used;perc_valid{line_end}"))
-        .unwrap();
+    key_mapping.write_fmt(format_args!("file_name;key_repr{line_end}"))?;
+    perc_mapping.write_fmt(format_args!("file_name;char_used;perc_valid{line_end}"))?;
 
     let threshold_valid = param.threshold.unwrap_or(95);
 
@@ -639,23 +633,17 @@ fn produce_plaintext(
         }
         // FIXME: write(format) vs write_fmt(format_args)
         if key_repr.contains('\'') && !key_repr.contains("\\'") {
-            key_mapping
-                .write_all(format!("{file_name};b\"{key_repr}\"{line_end}").as_bytes())
-                .unwrap();
+            key_mapping.write_all(format!("{file_name};b\"{key_repr}\"{line_end}").as_bytes())?;
         } else {
-            key_mapping
-                .write_all(format!("{file_name};b'{key_repr}'{line_end}").as_bytes())
-                .unwrap();
+            key_mapping.write_all(format!("{file_name};b'{key_repr}'{line_end}").as_bytes())?;
         }
         // FIXME: SHould be repr(key_char_used[key])
-        perc_mapping
-            .write_fmt(format_args!(
-                "{file_name};{:?};{perc}{line_end}",
-                key_char_used[key]
-            ))
-            .unwrap();
+        perc_mapping.write_fmt(format_args!(
+            "{file_name};{:?};{perc}{line_end}",
+            key_char_used[key]
+        ))?;
         if !param.filter_output || (perc > threshold_valid) {
-            fs::write(file_name, dexored).unwrap();
+            fs::write(file_name, dexored)?;
         }
     }
 
@@ -695,7 +683,7 @@ mod tests {
             filename: String::from("tests/small_file.txt"),
             ..Default::default()
         };
-        assert_eq!(get_ciphertext(&param), "Hello World!".as_bytes())
+        assert_eq!(get_ciphertext(&param).unwrap(), "Hello World!".as_bytes())
     }
 
     #[test]
@@ -705,7 +693,7 @@ mod tests {
             input_is_hex: true,
             ..Default::default()
         };
-        assert_eq!(get_ciphertext(&param), "Hello World".as_bytes())
+        assert_eq!(get_ciphertext(&param).unwrap(), "Hello World".as_bytes())
     }
 
     #[test]

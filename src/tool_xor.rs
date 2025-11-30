@@ -102,6 +102,7 @@ pub fn main(args: Option<Vec<String>>) {
     }
 
     let result = xor(datas, cycle);
+    // FIXME: Replace these unwraps with conversion to XorError::IO
     stdout().write_all(&result).unwrap();
     if newline {
         stdout().write_all("\n".as_bytes()).unwrap();
@@ -221,10 +222,10 @@ fn from_file(s: &str) -> Result<Vec<u8>, XorError> {
     } else {
         if s == "-" {
             let mut buf = Vec::new();
-            io::stdin().read_to_end(&mut buf).unwrap();
+            io::stdin().read_to_end(&mut buf)?;
             return Ok(buf);
         }
-        Ok(fs::read(s).unwrap())
+        Ok(fs::read(s)?)
     }
 }
 
